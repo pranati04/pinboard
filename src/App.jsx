@@ -10,6 +10,7 @@ import './styles/board.css';
 import './styles/nodes.css';
 import './styles/edges.css';
 import './styles/groups.css';
+import './styles/panels.css';
 
 export default function App() {
   const app = useAppState();

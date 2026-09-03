@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
 import BoardCanvas from './BoardCanvas.jsx';
+import NodeEditor from './NodeEditor.jsx';
+import Comments from './Comments.jsx';
+import ShareModal from './ShareModal.jsx';
 import { REL_LABELS } from '../data/seed.js';
 
 const TOOLS = [
@@ -31,7 +34,22 @@ export default function BoardView({ app }) {
 
   const nodes = Object.values(app.nodes)
     .filter((n) => n.boardId === board.id)
-    .map((n) => ({ ...n, ...(sizes[n.id] ? { w: sizes[n.id].w, h: sizes[n.id].h } : {}) }));
+    .map((n) => ({ ...n, ...(sizes[n.id] ? { w: sizes[n.id].w, h: sizes[n.id].h } : {}), ...(overrides[n.id] || {}) }));
+  const selected = selectedId ? nodes.find((n) => n.id === selectedId) || null : null;
+
+  const patchNode = (id, patch) => setOverrides((o) => ({ ...o, [id]: { ...(o[id] || {}), ...patch } }));
+  const deleteNode = (id) => {
+    setOverrides((o) => ({ ...o, [id]: { ...(o[id] || {}), _deleted: true } }));
+    setSelectedId(null);
+  };
+  const visibleNodes = nodes.filter((n) => !n._deleted);
+  const visibleNodeMap = useMemo(() => Object.fromEntries(visibleNodes.map((n) => [n.id, n])), [visibleNodes]);
+
+  const addComment = (c) => setAllComments((all) => [...all, {
+    id: `cm-${Date.now()}`, boardId: board.id, author: app.user?.name || 'Guest',
+    createdAt: Date.now(), ...c,
+  }]);
+  const deleteComment = (id) => setAllComments((all) => all.filter((c) => c.id !== id));
   const nodeMap = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, n])), [nodes]);
 
   const onNodeClick = (n) => {
@@ -49,6 +67,10 @@ export default function BoardView({ app }) {
   };
 
   const deleteEdge = (id) => setEdges((e) => e.filter((c) => c.id !== id));
+  const [overrides, setOverrides] = useState({});
+  const [shareOpen, setShareOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState('edit');
+  const [allComments, setAllComments] = useState(() => app.comments.filter((c) => c.boardId === board.id));
   const [boardQuery, setBoardQuery] = useState('');
   const [activeTag, setActiveTag] = useState(null);
 
@@ -82,7 +104,7 @@ export default function BoardView({ app }) {
         <div className="board-actions">
           <div className="board-searchbar"><span>⌕</span><input value={boardQuery} onChange={(e) => setBoardQuery(e.target.value)} placeholder="Search nodes… (FR-43)" /></div>
           <span className="cam-readout">{Math.round(cam.zoom * 100)}%</span>
-          <button className="btn solid sm">Share</button>
+          <button className="btn solid sm" onClick={() => setShareOpen(true)}>Share</button>
         </div>
       </header>
 
@@ -103,9 +125,9 @@ export default function BoardView({ app }) {
             {(boardQuery || activeTag) && <button className="clear" onClick={() => { setBoardQuery(''); setActiveTag(null); }}>✕ clear</button>}
           </div>
           <BoardCanvas
-            board={board} nodes={nodes} connections={edges} nodeMap={nodeMap} groups={app.groups}
+            board={board} nodes={visibleNodes} connections={edges} nodeMap={visibleNodeMap} groups={app.groups}
             cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode} resizeNode={resizeNode}
-            selectedId={selectedId} onSelect={setSelectedId} activeTool={tool}
+            selectedId={selectedId} onSelect={(id) => { setSelectedId(id); if (id) setPanelTab('edit'); }} activeTool={tool}
             connectFrom={connectFrom} onNodeClick={onNodeClick} onDeleteEdge={deleteEdge}
             dimIds={dimIds}
           />
@@ -134,12 +156,45 @@ export default function BoardView({ app }) {
 
         <aside className="props-panel">
           <p className="eyebrow">Inspector</p>
-          <h3>{selectedId ? (app.nodes[selectedId]?.title || 'Selected') : 'Nothing selected'}</h3>
-          <p className="props-empty">Click a node to select it. Full node editor lands next.</p>
+          {selected ? (
+            <>
+              <h3>{selected.title}</h3>
+              <div className="tabs">
+                <button className={panelTab === 'edit' ? 'on' : ''} onClick={() => setPanelTab('edit')}>Edit</button>
+                <button className={panelTab === 'comments' ? 'on' : ''} onClick={() => setPanelTab('comments')}>
+                  Comments ({allComments.filter((c) => c.nodeId === selected.id).length})
+                </button>
+              </div>
+              {panelTab === 'edit' ? (
+                <NodeEditor
+                  node={selected}
+                  onChange={patchNode}
+                  onDelete={deleteNode}
+                  onDuplicate={(id) => {
+                    const src = nodes.find((n) => n.id === id);
+                    const p = posOf(src);
+                    const nid = `n-${Date.now()}`;
+                    setOverrides((o) => ({ ...o, [nid]: {} }));
+                    setPositions((pp) => ({ ...pp, [nid]: { x: p.x + 32, y: p.y + 32 } }));
+                    setSizes((s) => ({ ...s, [nid]: { w: src.w, h: src.h || 0 } }));
+                    app.nodes[nid] = { ...src, id: nid, title: src.title + ' (copy)' };
+                    setSelectedId(nid);
+                  }}
+                />
+              ) : (
+                <Comments comments={allComments} nodeId={selected.id} userName={app.user?.name || 'Guest'} onAdd={addComment} onDelete={deleteComment} />
+              )}
+            </>
+          ) : (
+            <>
+              <h3>Board discussion</h3>
+              <Comments comments={allComments} nodeId={null} userName={app.user?.name || 'Guest'} onAdd={addComment} onDelete={deleteComment} />
+            </>
+          )}
           <div className="props-section">
-            <h4>Layers ({nodes.length})</h4>
-            {nodes.map((n) => (
-              <div className={`layer-row ${selectedId === n.id ? 'on' : ''}`} key={n.id} onClick={() => setSelectedId(n.id)}>
+            <h4>Layers ({visibleNodes.length})</h4>
+            {visibleNodes.map((n) => (
+              <div className={`layer-row ${selectedId === n.id ? 'on' : ''}`} key={n.id} onClick={() => { setSelectedId(n.id); setPanelTab('edit'); }}>
                 <span className={`dot t-${n.type}`} />
                 <span>{n.title}</span>
               </div>
@@ -147,6 +202,7 @@ export default function BoardView({ app }) {
           </div>
         </aside>
       </div>
+      {shareOpen && <ShareModal board={board} onClose={() => setShareOpen(false)} />}
     </div>
   );
 }
