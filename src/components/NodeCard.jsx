@@ -1,6 +1,20 @@
 const hash = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
 
-export default function NodeCard({ n, selected, onDragDown, onResizeDown, frameless }) {
+export default function NodeCard({ n, selected, onDragDown, onResizeDown, frameless, thought, isRoot, depth }) {
+  if (thought) {
+    return (
+      <div
+        className={`thought ${isRoot ? 'root' : ''} ${selected ? 'selected' : ''}`}
+        style={{ width: n.w, transform: `translate(${n._x}px, ${n._y}px)` }}
+        onPointerDown={(e) => onDragDown(e, n)}
+      >
+        {isRoot && <span className="thought-crown">✦ central thought</span>}
+        <strong>{n.title}</strong>
+        <p>{n.content}</p>
+        <span className="resize-handle" onPointerDown={(e) => onResizeDown(e, n)} title="Resize" />
+      </div>
+    );
+  }
   const tilt = frameless ? ((hash(n.id) % 9) - 4) / 10 : ((hash(n.id) % 13) - 6) / 10;
   if (frameless && n.type === 'image') {
     return (

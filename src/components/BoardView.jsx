@@ -5,6 +5,7 @@ import Comments from './Comments.jsx';
 import ShareModal from './ShareModal.jsx';
 import { BOARD_KINDS, REL_LABELS } from '../data/seed.js';
 import { paletteFromNodes, shuffleLayout } from './moodUtils.js';
+import { autoArrange, buildTree, childSpot, findRoot } from './mapUtils.js';
 
 const PIN_TOOLS = [
   { id: 'select', icon: '➤', label: 'Select (V)' },
@@ -77,6 +78,7 @@ export default function BoardView({ app }) {
   const nodeMap = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, n])), [nodes]);
 
   const onNodeClick = (n) => {
+    if (tool === 'branch' && isMap) { branchThought(n); setTool('select'); return; }
     if (!connectFrom) { setConnectFrom(n.id); return; }
     if (connectFrom === n.id) { setConnectFrom(null); return; }
     setPendingEdge({ from: connectFrom, to: n.id, label: REL_LABELS[0] });
@@ -115,6 +117,81 @@ export default function BoardView({ app }) {
   const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
   const resizeNode = (id, w, h) => setSizes((s) => ({ ...s, [id]: { w, h } }));
 
+  const root = isMap ? findRoot(visibleNodes, edges) : null;
+
+  const branchThought = (parent) => {
+    const nid = `t-${Date.now()}`;
+    const kids = buildTree(root?.id || parent.id, edges);
+    const siblings = (kids.get(parent.id) || []).length;
+    const spot = childSpot(parent, posOf, siblings, siblings + 1);
+    const thought = { id: nid, boardId: board.id, type: 'text', title: 'New thought', content: 'Say it in one line, then branch again.', x: spot.x, y: spot.y, w: 250, h: 140, tags: [], color: 'cream' };
+    app.nodes[nid] = thought;
+    setOverrides((o) => ({ ...o, [nid]: {} }));
+    setPositions((p) => ({ ...p, [nid]: { x: spot.x, y: spot.y } }));
+    setSizes((s) => ({ ...s, [nid]: { w: 250, h: 140 } }));
+    setEdges((e) => [...e, { id: `c-${Date.now()}`, boardId: board.id, from: parent.id, to: nid, label: 'Leads to' }]);
+    setSelectedId(nid);
+    setPanelTab('edit');
+  };
+
+  const addFloatingThought = () => {
+    const nid = `t-${Date.now()}`;
+    const spot = { x: 480 + Math.round(Math.random() * 200 - 100), y: 420 + Math.round(Math.random() * 120) };
+    app.nodes[nid] = { id: nid, boardId: board.id, type: 'text', title: 'Floating thought', content: 'Not attached yet — drag it near the tree or branch from it.', x: spot.x, y: spot.y, w: 250, h: 140, tags: [], color: 'cream' };
+    setOverrides((o) => ({ ...o, [nid]: {} }));
+    setPositions((p) => ({ ...p, [nid]: spot }));
+    setSizes((s) => ({ ...s, [nid]: { w: 250, h: 140 } }));
+    setSelectedId(nid);
+    setPanelTab('edit');
+  };
+
+  const doArrange = () => {
+    const layout = autoArrange(visibleNodes, edges, posOf);
+    setPositions((p) => ({ ...p, ...layout }));
+  };
+
+  const onToolClick = (id) => {
+    if (id === 'branch') {
+      const parent = selected || root || visibleNodes[0];
+      if (parent) branchThought(parent);
+      return;
+    }
+    if (id === 'thought') { addFloatingThought(); return; }
+    if (id === 'arrange') { doArrange(); return; }
+    if (id === 'image' && isMood) {
+      const nid = `m-${Date.now()}`;
+      const spot = { x: 300 + Math.round(Math.random() * 300), y: 200 + Math.round(Math.random() * 200) };
+      app.nodes[nid] = { id: nid, boardId: board.id, type: 'image', title: 'New reference', content: 'https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=600&q=60', x: spot.x, y: spot.y, w: 260, h: 0, tags: ['new'], color: 'cream' };
+      setOverrides((o) => ({ ...o, [nid]: {} }));
+      setPositions((p) => ({ ...p, [nid]: spot }));
+      setSizes((s) => ({ ...s, [nid]: { w: 260, h: 0 } }));
+      setSelectedId(nid);
+      return;
+    }
+    if (id === 'swatch' && isMood) {
+      const nid = `s-${Date.now()}`;
+      const hex = ['#c98a2e', '#c4746a', '#7d8b6f', '#6f93a8'][visibleNodes.length % 4];
+      const spot = { x: 350 + Math.round(Math.random() * 250), y: 450 + Math.round(Math.random() * 100) };
+      app.nodes[nid] = { id: nid, boardId: board.id, type: 'swatch', title: 'Swatch', content: hex, x: spot.x, y: spot.y, w: 170, h: 0, tags: [], color: 'cream' };
+      setOverrides((o) => ({ ...o, [nid]: {} }));
+      setPositions((p) => ({ ...p, [nid]: spot }));
+      setSizes((s) => ({ ...s, [nid]: { w: 170, h: 0 } }));
+      setSelectedId(nid);
+      return;
+    }
+    if (id === 'text' && isMood) {
+      const nid = `m-${Date.now()}`;
+      const spot = { x: 300 + Math.round(Math.random() * 300), y: 250 + Math.round(Math.random() * 200) };
+      app.nodes[nid] = { id: nid, boardId: board.id, type: 'text', title: '', content: 'a quiet note in handwriting…', x: spot.x, y: spot.y, w: 260, h: 0, tags: [], color: 'cream' };
+      setOverrides((o) => ({ ...o, [nid]: {} }));
+      setPositions((p) => ({ ...p, [nid]: spot }));
+      setSizes((s) => ({ ...s, [nid]: { w: 260, h: 0 } }));
+      setSelectedId(nid);
+      return;
+    }
+    setTool(id);
+  };
+
   return (
     <div className="board-view">
       <header className="board-topbar">
@@ -135,7 +212,7 @@ export default function BoardView({ app }) {
       <div className="board-body-row">
         <aside className="tool-rail" aria-label="Tools">
           {TOOLS.map((t) => (
-            <button key={t.id} className={`tool ${tool === t.id ? 'active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>
+            <button key={t.id} className={`tool ${tool === t.id ? 'active' : ''}`} title={t.label} onClick={() => onToolClick(t.id)}>
               <span>{t.icon}</span>
             </button>
           ))}
@@ -155,7 +232,14 @@ export default function BoardView({ app }) {
             connectFrom={connectFrom} onNodeClick={onNodeClick} onDeleteEdge={deleteEdge}
             dimIds={dimIds} frameless={isMood} palette={palette}
             onShuffle={doShuffle} moodCount={visibleNodes.length}
+            thoughtMode={isMap} rootId={root?.id} onArrange={doArrange} mapCount={visibleNodes.length}
           />
+          {isMap && tool === 'branch' && (
+            <div className="connect-banner">
+              Branch mode: click any thought to grow a child from it
+              <button onClick={() => setTool('select')}>✕</button>
+            </div>
+          )}
           {tool === 'connect' && (
             <div className="connect-banner">
               {connectFrom ? `Source: ${nodeMap[connectFrom]?.title} — now click the target node` : 'Connect mode: click a source node, then a target (FR-30)'}

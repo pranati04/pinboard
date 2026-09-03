@@ -18,7 +18,7 @@ const BG = {
 const MIN_Z = 0.4;
 const MAX_Z = 2;
 
-export default function BoardCanvas({ board, nodes, connections, nodeMap, groups, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge, dimIds, frameless, palette, onShuffle, moodCount }) {
+export default function BoardCanvas({ board, nodes, connections, nodeMap, groups, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge, dimIds, frameless, palette, onShuffle, moodCount, thoughtMode, rootId, onArrange, mapCount }) {
   const viewRef = useRef(null);
   const dragRef = useRef(null);
 
@@ -67,7 +67,7 @@ export default function BoardCanvas({ board, nodes, connections, nodeMap, groups
     if (e.button !== 0) return;
     if (e.target.closest('.resize-handle')) return;
     e.stopPropagation();
-    if (activeTool === 'connect') { onNodeClick?.(n); return; }
+    if (activeTool === 'connect' || activeTool === 'branch') { onNodeClick?.(n); return; }
     onSelect(n.id);
     const w = toWorld(e.clientX, e.clientY);
     const p = posOf(n);
@@ -126,13 +126,18 @@ export default function BoardCanvas({ board, nodes, connections, nodeMap, groups
           const dim = dimIds && dimIds.has(n.id) ? ' dimmed' : '';
           return (
             <span key={n.id} className={`node-wrap${extra}${dim}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: selectedId === n.id ? 6 : 3 }}>
-              <NodeCard n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} frameless={frameless} />
+              <NodeCard n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} frameless={frameless} thought={thoughtMode} isRoot={rootId === n.id} />
             </span>
           );
         })}
       </div>
 
-      {frameless ? (
+      {thoughtMode ? (
+        <div className="mood-dock map-dock">
+          <span className="mood-count">{mapCount} thoughts · root first</span>
+          <button onClick={onArrange} title="Auto-arrange the tree">⧉ Auto-arrange</button>
+        </div>
+      ) : frameless ? (
         <div className="mood-dock">
           <div className="palette-strip" title="Palette pulled from this board's tags">
             {(palette || []).map((c) => (

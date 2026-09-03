@@ -12,6 +12,7 @@ import './styles/edges.css';
 import './styles/groups.css';
 import './styles/panels.css';
 import './styles/mood.css';
+import './styles/map.css';
 
 export default function App() {
   const app = useAppState();
