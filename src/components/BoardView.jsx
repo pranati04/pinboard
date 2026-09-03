@@ -49,6 +49,22 @@ export default function BoardView({ app }) {
   };
 
   const deleteEdge = (id) => setEdges((e) => e.filter((c) => c.id !== id));
+  const [boardQuery, setBoardQuery] = useState('');
+  const [activeTag, setActiveTag] = useState(null);
+
+  const allTags = useMemo(() => [...new Set(nodes.flatMap((n) => n.tags || []))], [nodes]);
+
+  const dimIds = useMemo(() => {
+    const q = boardQuery.trim().toLowerCase();
+    if (!q && !activeTag) return null;
+    const hide = new Set();
+    nodes.forEach((n) => {
+      const okQ = !q || (n.title + ' ' + (n.content || '')).toLowerCase().includes(q);
+      const okT = !activeTag || (n.tags || []).includes(activeTag);
+      if (!(okQ && okT)) hide.add(n.id);
+    });
+    return hide;
+  }, [nodes, boardQuery, activeTag]);
 
   const posOf = (n) => positions[n.id] || { x: n.x, y: n.y };
   const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
@@ -64,6 +80,7 @@ export default function BoardView({ app }) {
           <span className={`vis static ${board.isPublic ? 'pub' : ''}`}>{board.isPublic ? '◉ public' : '◌ private'}</span>
         </div>
         <div className="board-actions">
+          <div className="board-searchbar"><span>⌕</span><input value={boardQuery} onChange={(e) => setBoardQuery(e.target.value)} placeholder="Search nodes… (FR-43)" /></div>
           <span className="cam-readout">{Math.round(cam.zoom * 100)}%</span>
           <button className="btn solid sm">Share</button>
         </div>
@@ -79,11 +96,18 @@ export default function BoardView({ app }) {
         </aside>
 
         <div className="canvas-frame">
+          <div className="tag-filter">
+            {allTags.map((t) => (
+              <button key={t} className={activeTag === t ? 'on' : ''} onClick={() => setActiveTag(activeTag === t ? null : t)}>#{t}</button>
+            ))}
+            {(boardQuery || activeTag) && <button className="clear" onClick={() => { setBoardQuery(''); setActiveTag(null); }}>✕ clear</button>}
+          </div>
           <BoardCanvas
             board={board} nodes={nodes} connections={edges} nodeMap={nodeMap} groups={app.groups}
             cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode} resizeNode={resizeNode}
             selectedId={selectedId} onSelect={setSelectedId} activeTool={tool}
             connectFrom={connectFrom} onNodeClick={onNodeClick} onDeleteEdge={deleteEdge}
+            dimIds={dimIds}
           />
           {tool === 'connect' && (
             <div className="connect-banner">

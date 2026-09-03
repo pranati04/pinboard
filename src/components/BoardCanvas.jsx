@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import NodeCard from './NodeCard.jsx';
 import ConnectionsLayer from './ConnectionsLayer.jsx';
+import GroupsLayer from './GroupsLayer.jsx';
 
 const TEXTURES = {
   cork: 'radial-gradient(rgba(60,40,20,.16) 1.2px, transparent 1.3px)',
@@ -17,7 +18,7 @@ const BG = {
 const MIN_Z = 0.4;
 const MAX_Z = 2;
 
-export default function BoardCanvas({ board, nodes, connections, nodeMap, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge }) {
+export default function BoardCanvas({ board, nodes, connections, nodeMap, groups, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge, dimIds }) {
   const viewRef = useRef(null);
   const dragRef = useRef(null);
 
@@ -117,12 +118,14 @@ export default function BoardCanvas({ board, nodes, connections, nodeMap, cam, s
         }}
       >
         <div className="canvas-texture" style={{ backgroundImage: TEXTURES[board.background] || TEXTURES.cork }} />
+        <GroupsLayer groups={groups || []} boardId={board.id} posOf={posOf} />
         <ConnectionsLayer connections={connections} nodeMap={nodeMap} posOf={posOf} onDelete={onDeleteEdge} />
         {nodes.map((n) => {
           const p = posOf(n);
           const extra = connectFrom === n.id ? ' connect-source' : '';
+          const dim = dimIds && dimIds.has(n.id) ? ' dimmed' : '';
           return (
-            <span key={n.id} className={`node-wrap${extra}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: selectedId === n.id ? 6 : 3 }}>
+            <span key={n.id} className={`node-wrap${extra}${dim}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: selectedId === n.id ? 6 : 3 }}>
               <NodeCard n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} />
             </span>
           );

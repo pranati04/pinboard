@@ -27,8 +27,8 @@
 .tool:hover { background: var(--paper-deep); }
 .tool.active { background: var(--walnut); color: var(--brass-bright); border-color: var(--walnut); }
 
-.canvas-frame { flex: 1; position: relative; min-width: 0; background: #2b2118; }
-.canvas-scroll { position: absolute; inset: 0; overflow: hidden; }
+.canvas-frame { flex: 1; position: relative; min-width: 0; background: #2b2118; display: flex; flex-direction: column; }
+.canvas-scroll { position: relative; flex: 1; overflow: hidden; }
 .canvas-world { position: absolute; width: 2400px; height: 1600px; box-shadow: inset 0 0 120px rgba(0,0,0,.25); }
 .canvas-texture { position: absolute; inset: 0; background-size: 26px 26px; }
 .node-shell {
