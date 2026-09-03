@@ -8,6 +8,7 @@
 .brand-pin.sm { width: 13px; height: 13px; }
 .board-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .board-title h1 { font-family: var(--font-display); font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kind-badge { font-size: 11.5px; font-weight: 800; background: var(--walnut); color: var(--brass-bright); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
 .vis.static { position: static; }
 .board-actions { display: flex; align-items: center; gap: 10px; }
 .zoom-pill { display: flex; align-items: center; gap: 4px; background: var(--cream); border: 1.5px solid var(--line); border-radius: 999px; padding: 3px 6px; font-size: 13px; font-weight: 600; }

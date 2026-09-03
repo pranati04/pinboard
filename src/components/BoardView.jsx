@@ -3,9 +3,9 @@ import BoardCanvas from './BoardCanvas.jsx';
 import NodeEditor from './NodeEditor.jsx';
 import Comments from './Comments.jsx';
 import ShareModal from './ShareModal.jsx';
-import { REL_LABELS } from '../data/seed.js';
+import { BOARD_KINDS, REL_LABELS } from '../data/seed.js';
 
-const TOOLS = [
+const PIN_TOOLS = [
   { id: 'select', icon: '➤', label: 'Select (V)' },
   { id: 'pan', icon: '✥', label: 'Pan (H)' },
   { id: 'connect', icon: '⟡', label: 'Connect (C)' },
@@ -17,8 +17,28 @@ const TOOLS = [
   { id: 'audio', icon: '♪', label: 'Audio' },
 ];
 
+const MOOD_TOOLS = [
+  { id: 'select', icon: '➤', label: 'Select (V)' },
+  { id: 'pan', icon: '✥', label: 'Pan (H)' },
+  { id: 'image', icon: '◧', label: 'Add image' },
+  { id: 'text', icon: 'T', label: 'Caption note' },
+  { id: 'swatch', icon: '◍', label: 'Add colour swatch' },
+];
+
+const MAP_TOOLS = [
+  { id: 'select', icon: '➤', label: 'Select (V)' },
+  { id: 'pan', icon: '✥', label: 'Pan (H)' },
+  { id: 'branch', icon: '⑂', label: 'Branch a child thought' },
+  { id: 'thought', icon: '○', label: 'Floating thought' },
+  { id: 'arrange', icon: '⧉', label: 'Auto-arrange' },
+];
+
 export default function BoardView({ app }) {
   const board = app.boards.find((b) => b.id === app.view.boardId) || app.boards[0];
+  const kind = BOARD_KINDS[board.kind] || BOARD_KINDS.pinboard;
+  const isMood = kind.id === 'moodboard';
+  const isMap = kind.id === 'thoughtmap';
+  const TOOLS = isMood ? MOOD_TOOLS : isMap ? MAP_TOOLS : PIN_TOOLS;
   const [overrides, setOverrides] = useState({});
   const [shareOpen, setShareOpen] = useState(false);
   const [panelTab, setPanelTab] = useState('edit');
@@ -99,6 +119,7 @@ export default function BoardView({ app }) {
         <div className="board-title">
           <span className="brand-pin sm" />
           <h1>{board.title}</h1>
+          <span className="kind-badge">{kind.icon} {kind.name}</span>
           <span className={`vis static ${board.isPublic ? 'pub' : ''}`}>{board.isPublic ? '◉ public' : '◌ private'}</span>
         </div>
         <div className="board-actions">
