@@ -152,8 +152,8 @@ export default function BoardView({ app }) {
 
   const onToolClick = (id) => {
     if (id === 'branch') {
-      const parent = selected || root || visibleNodes[0];
-      if (parent) branchThought(parent);
+      if (selected) { branchThought(selected); return; }
+      setTool('branch');
       return;
     }
     if (id === 'thought') { addFloatingThought(); return; }
