@@ -1,0 +1,39 @@
+.auth-page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--paper); }
+.auth-card { padding: 40px 64px; max-width: 560px; width: 100%; margin: auto 0 auto auto; }
+.auth-back { background: none; border: none; color: var(--ink-faint); font-size: 14px; margin-bottom: 28px; }
+.auth-back:hover { color: var(--ink); }
+.auth-card h1 { font-family: var(--font-display); font-size: 38px; margin: 12px 0 8px; }
+.auth-sub { color: #5c4f40; margin-bottom: 24px; }
+.auth-tabs { display: inline-flex; background: var(--paper-deep); border-radius: 999px; padding: 4px; margin-bottom: 24px; }
+.auth-tabs button { border: none; background: none; padding: 8px 22px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--ink-faint); }
+.auth-tabs button.active { background: var(--walnut); color: var(--cream); }
+.auth-card form label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+.auth-card form input {
+  display: block; width: 100%; margin-top: 6px; padding: 12px 14px;
+  border: 1.5px solid var(--line); border-radius: 10px; font-size: 15px; background: var(--cream);
+}
+.auth-card form input:focus { outline: none; border-color: var(--brass); box-shadow: 0 0 0 3px rgba(185,138,47,.18); }
+.auth-error { background: #f7e3e0; color: #8c3b32; font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.auth-submit { width: 100%; margin-top: 6px; }
+.auth-foot { margin-top: 22px; font-size: 19px; color: var(--ink-faint); }
+.auth-side {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(224,179,78,.25), transparent 55%),
+    linear-gradient(140deg, #2a211a, #4a3826 65%, #6b5323);
+  position: relative; overflow: hidden; min-height: 100vh;
+}
+.auth-side-card {
+  position: absolute; background: var(--cream); border-radius: 10px; padding: 16px;
+  box-shadow: var(--lift-shadow); width: 230px; animation: bob 8s ease-in-out infinite;
+}
+.auth-side-card img { width: 100%; border-radius: 6px; display: block; }
+.auth-side-card p { font-size: 13px; color: #5c4f40; margin-top: 6px; }
+.auth-side-card.r1 { top: 16%; left: 14%; transform: rotate(-6deg); }
+.auth-side-card.r2 { top: 42%; right: 12%; transform: rotate(5deg); animation-delay: -2.5s; }
+.auth-side-card.r3 { bottom: 12%; left: 24%; transform: rotate(-3deg); animation-delay: -5s; }
+
+@media (max-width: 900px) {
+  .auth-page { grid-template-columns: 1fr; }
+  .auth-side { display: none; }
+  .auth-card { margin: 0 auto; padding: 32px 24px; }
+}

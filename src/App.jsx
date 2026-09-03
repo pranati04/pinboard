@@ -1,6 +1,8 @@
 import { useAppState } from './store/boardStore.js';
 import Landing from './components/Landing.jsx';
+import Auth from './components/Auth.jsx';
 import './styles/landing.css';
+import './styles/auth.css';
 
 export default function App() {
   const app = useAppState();
@@ -8,6 +10,16 @@ export default function App() {
 
   if (app.view.name === 'landing' || !app.view.name) {
     return <Landing onEnter={go} />;
+  }
+  if (app.view.name === 'login' || app.view.name === 'register') {
+    return (
+      <Auth
+        mode={app.view.name}
+        onMode={go}
+        onBack={() => go('landing')}
+        onAuth={(u) => { app.setUser(u); go('dashboard'); }}
+      />
+    );
   }
   return (
     <div style={{ padding: 48, fontFamily: 'var(--font-body)' }}>
