@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import NodeCard from './NodeCard.jsx';
 
 const TEXTURES = {
   cork: 'radial-gradient(rgba(60,40,20,.16) 1.2px, transparent 1.3px)',
@@ -15,7 +16,7 @@ const BG = {
 const MIN_Z = 0.4;
 const MAX_Z = 2;
 
-export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode, selectedId, onSelect, activeTool }) {
+export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool }) {
   const viewRef = useRef(null);
   const dragRef = useRef(null);
 
@@ -60,8 +61,9 @@ export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const onNodeDown = (e, n) => {
+  const onDragDown = (e, n) => {
     if (e.button !== 0) return;
+    if (e.target.closest('.resize-handle')) return;
     e.stopPropagation();
     onSelect(n.id);
     const w = toWorld(e.clientX, e.clientY);
@@ -70,14 +72,27 @@ export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
+  const onResizeDown = (e, n) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    onSelect(n.id);
+    dragRef.current = { kind: 'resize', id: n.id, sx: e.clientX, sy: e.clientY, w: n.w, h: n.h || 0 };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
   const onMove = (e) => {
     const d = dragRef.current;
     if (!d) return;
     if (d.kind === 'pan') {
       setCam((c) => ({ ...c, x: d.cx + (e.clientX - d.sx), y: d.cy + (e.clientY - d.sy) }));
-    } else {
+    } else if (d.kind === 'node') {
       const w = toWorld(e.clientX, e.clientY);
       moveNode(d.id, Math.round(w.x - d.dx), Math.round(w.y - d.dy));
+    } else if (d.kind === 'resize') {
+      const dw = (e.clientX - d.sx) / cam.zoom;
+      const dh = (e.clientY - d.sy) / cam.zoom;
+      resizeNode(d.id, Math.max(170, Math.round(d.w + dw)), Math.max(0, Math.round(d.h + dh)));
     }
   };
 
@@ -102,18 +117,7 @@ export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode
         <div className="canvas-texture" style={{ backgroundImage: TEXTURES[board.background] || TEXTURES.cork }} />
         {nodes.map((n) => {
           const p = posOf(n);
-          return (
-            <div
-              key={n.id}
-              className={`node ${selectedId === n.id ? 'selected' : ''}`}
-              style={{ left: p.x, top: p.y, width: n.w }}
-              onPointerDown={(e) => onNodeDown(e, n)}
-            >
-              <span className="pin" />
-              <span className="node-shell-title">{n.title}</span>
-              <span className="node-shell-type">{n.type}</span>
-            </div>
-          );
+          return <NodeCard key={n.id} n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} />;
         })}
       </div>
 

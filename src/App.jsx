@@ -7,6 +7,7 @@ import './styles/landing.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/board.css';
+import './styles/nodes.css';
 
 export default function App() {
   const app = useAppState();

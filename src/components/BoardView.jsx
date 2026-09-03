@@ -19,13 +19,19 @@ export default function BoardView({ app }) {
     Object.fromEntries(Object.values(app.nodes).filter((n) => n.boardId === board.id).map((n) => [n.id, { x: n.x, y: n.y }]))
   );
   const [cam, setCam] = useState({ x: 40, y: 30, zoom: 1 });
+  const [sizes, setSizes] = useState(() =>
+    Object.fromEntries(Object.values(app.nodes).filter((n) => n.boardId === board.id).map((n) => [n.id, { w: n.w, h: n.h || 0 }]))
+  );
   const [tool, setTool] = useState('select');
   const [selectedId, setSelectedId] = useState(null);
 
-  const nodes = Object.values(app.nodes).filter((n) => n.boardId === board.id);
+  const nodes = Object.values(app.nodes)
+    .filter((n) => n.boardId === board.id)
+    .map((n) => ({ ...n, ...(sizes[n.id] ? { w: sizes[n.id].w, h: sizes[n.id].h } : {}) }));
   const conns = app.connections.filter((c) => c.boardId === board.id);
   const posOf = (n) => positions[n.id] || { x: n.x, y: n.y };
   const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
+  const resizeNode = (id, w, h) => setSizes((s) => ({ ...s, [id]: { w, h } }));
 
   return (
     <div className="board-view">
@@ -54,7 +60,7 @@ export default function BoardView({ app }) {
         <div className="canvas-frame">
           <BoardCanvas
             board={board} nodes={nodes} connections={conns} groups={app.groups}
-            cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode}
+            cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode} resizeNode={resizeNode}
             selectedId={selectedId} onSelect={setSelectedId} activeTool={tool}
           />
           <div className="canvas-hint">drag canvas to pan · scroll to zoom · drag a card to move it (FR-24…28)</div>
