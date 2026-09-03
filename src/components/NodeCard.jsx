@@ -1,7 +1,51 @@
 const hash = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
 
-export default function NodeCard({ n, selected, onDragDown, onResizeDown }) {
-  const tilt = ((hash(n.id) % 13) - 6) / 10;
+export default function NodeCard({ n, selected, onDragDown, onResizeDown, frameless }) {
+  const tilt = frameless ? ((hash(n.id) % 9) - 4) / 10 : ((hash(n.id) % 13) - 6) / 10;
+  if (frameless && n.type === 'image') {
+    return (
+      <div
+        className={`mood-photo ${selected ? 'selected' : ''}`}
+        style={{ width: n.w, transform: `translate(${n._x}px, ${n._y}px) rotate(${tilt}deg)` }}
+        onPointerDown={(e) => onDragDown(e, n)}
+      >
+        <img src={n.content} alt={n.title} loading="lazy"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        {(n.title || (n.tags || []).length > 0) && (
+          <span className="mood-caption">
+            {n.title && <em>{n.title}</em>}
+            {(n.tags || []).map((t) => <i key={t}>#{t}</i>)}
+          </span>
+        )}
+        <span className="resize-handle" onPointerDown={(e) => onResizeDown(e, n)} title="Resize" />
+      </div>
+    );
+  }
+  if (frameless && n.type === 'swatch') {
+    return (
+      <div
+        className={`mood-swatch ${selected ? 'selected' : ''}`}
+        style={{ width: n.w, background: n.content, transform: `translate(${n._x}px, ${n._y}px) rotate(${tilt}deg)` }}
+        onPointerDown={(e) => onDragDown(e, n)}
+      >
+        <span>{n.title}</span>
+        <code>{n.content}</code>
+        <span className="resize-handle" onPointerDown={(e) => onResizeDown(e, n)} title="Resize" />
+      </div>
+    );
+  }
+  if (frameless && n.type === 'text') {
+    return (
+      <div
+        className={`mood-note ${selected ? 'selected' : ''}`}
+        style={{ width: n.w, transform: `translate(${n._x}px, ${n._y}px) rotate(${tilt}deg)` }}
+        onPointerDown={(e) => onDragDown(e, n)}
+      >
+        <span className="hand">{n.content}</span>
+        <span className="resize-handle" onPointerDown={(e) => onResizeDown(e, n)} title="Resize" />
+      </div>
+    );
+  }
   return (
     <div
       className={`node color-${n.color || 'cream'} ${selected ? 'selected' : ''}`}

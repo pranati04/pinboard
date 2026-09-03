@@ -18,7 +18,7 @@ const BG = {
 const MIN_Z = 0.4;
 const MAX_Z = 2;
 
-export default function BoardCanvas({ board, nodes, connections, nodeMap, groups, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge, dimIds }) {
+export default function BoardCanvas({ board, nodes, connections, nodeMap, groups, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge, dimIds, frameless, palette, onShuffle, moodCount }) {
   const viewRef = useRef(null);
   const dragRef = useRef(null);
 
@@ -126,18 +126,33 @@ export default function BoardCanvas({ board, nodes, connections, nodeMap, groups
           const dim = dimIds && dimIds.has(n.id) ? ' dimmed' : '';
           return (
             <span key={n.id} className={`node-wrap${extra}${dim}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: selectedId === n.id ? 6 : 3 }}>
-              <NodeCard n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} />
+              <NodeCard n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} frameless={frameless} />
             </span>
           );
         })}
       </div>
 
-      <div className="zoom-float">
-        <button onClick={() => zoomBy(1 / 1.25)} aria-label="Zoom out">−</button>
-        <span>{Math.round(cam.zoom * 100)}%</span>
-        <button onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
-        <button onClick={() => setCam({ x: 40, y: 30, zoom: 1 })} aria-label="Reset view">⤢</button>
-      </div>
+      {frameless ? (
+        <div className="mood-dock">
+          <div className="palette-strip" title="Palette pulled from this board's tags">
+            {(palette || []).map((c) => (
+              <span key={c.hex} className="palette-dot" style={{ background: c.hex }} title={`${c.hex} · #${c.tag}`}>
+                <em>{c.hex}</em>
+              </span>
+            ))}
+            {(palette || []).length === 0 && <span className="palette-empty">tag images to grow the palette</span>}
+          </div>
+          <span className="mood-count">{moodCount} pieces</span>
+          <button onClick={onShuffle} title="Shuffle the collage">⤨ Shuffle</button>
+        </div>
+      ) : (
+        <div className="zoom-float">
+          <button onClick={() => zoomBy(1 / 1.25)} aria-label="Zoom out">−</button>
+          <span>{Math.round(cam.zoom * 100)}%</span>
+          <button onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
+          <button onClick={() => setCam({ x: 40, y: 30, zoom: 1 })} aria-label="Reset view">⤢</button>
+        </div>
+      )}
     </div>
   );
 }

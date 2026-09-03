@@ -4,6 +4,7 @@ import NodeEditor from './NodeEditor.jsx';
 import Comments from './Comments.jsx';
 import ShareModal from './ShareModal.jsx';
 import { BOARD_KINDS, REL_LABELS } from '../data/seed.js';
+import { paletteFromNodes, shuffleLayout } from './moodUtils.js';
 
 const PIN_TOOLS = [
   { id: 'select', icon: '➤', label: 'Select (V)' },
@@ -108,6 +109,8 @@ export default function BoardView({ app }) {
     return hide;
   }, [nodes, boardQuery, activeTag]);
 
+  const palette = useMemo(() => (isMood ? paletteFromNodes(visibleNodes) : []), [isMood, visibleNodes]);
+  const doShuffle = () => setPositions((p) => ({ ...p, ...shuffleLayout(visibleNodes, (n) => p[n.id] || { x: n.x, y: n.y }) }));
   const posOf = (n) => positions[n.id] || { x: n.x, y: n.y };
   const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
   const resizeNode = (id, w, h) => setSizes((s) => ({ ...s, [id]: { w, h } }));
@@ -150,7 +153,8 @@ export default function BoardView({ app }) {
             cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode} resizeNode={resizeNode}
             selectedId={selectedId} onSelect={(id) => { setSelectedId(id); if (id) setPanelTab('edit'); }} activeTool={tool}
             connectFrom={connectFrom} onNodeClick={onNodeClick} onDeleteEdge={deleteEdge}
-            dimIds={dimIds}
+            dimIds={dimIds} frameless={isMood} palette={palette}
+            onShuffle={doShuffle} moodCount={visibleNodes.length}
           />
           {tool === 'connect' && (
             <div className="connect-banner">

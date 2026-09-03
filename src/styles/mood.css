@@ -1,0 +1,42 @@
+.mood-photo {
+  position: absolute; background: #fff; padding: 10px 10px 8px; border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(34,26,18,.25), 0 18px 36px -14px rgba(34,26,18,.5);
+  cursor: grab; user-select: none; touch-action: none;
+}
+.mood-photo img { width: 100%; display: block; border-radius: 2px; background: var(--paper-deep); min-height: 90px; object-fit: cover; }
+.mood-photo.selected { outline: 2.5px solid var(--brass-bright); z-index: 6; }
+.mood-caption { display: flex; gap: 6px; align-items: baseline; padding: 8px 2px 2px; flex-wrap: wrap; }
+.mood-caption em { font-family: var(--font-hand); font-style: normal; font-size: 20px; color: #4a3f32; }
+.mood-caption i { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--ink-faint); }
+
+.mood-note {
+  position: absolute; background: transparent; cursor: grab; user-select: none; touch-action: none;
+  text-shadow: 0 1px 0 rgba(255,253,247,.6);
+}
+.mood-note .hand { font-size: 30px; line-height: 1.15; color: #3a2e22; }
+.mood-note.selected { outline: 2px dashed var(--brass-bright); outline-offset: 6px; }
+
+.mood-swatch {
+  position: absolute; border-radius: 10px; padding: 16px; min-height: 110px;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 2px;
+  color: rgba(255,255,255,.95); text-shadow: 0 1px 3px rgba(0,0,0,.4);
+  box-shadow: var(--card-shadow); cursor: grab; user-select: none; touch-action: none;
+  font-weight: 700; font-size: 14px;
+}
+.mood-swatch code { font-size: 11px; font-weight: 600; opacity: .9; }
+.mood-swatch.selected { outline: 2.5px solid #fff; outline-offset: 2px; }
+
+.mood-dock {
+  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 8;
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(34,26,18,.85); border-radius: 999px; padding: 8px 10px 8px 18px;
+}
+.palette-strip { display: flex; align-items: center; }
+.palette-dot { width: 30px; height: 30px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.85); margin-left: -8px; position: relative; cursor: pointer; }
+.palette-dot:first-child { margin-left: 0; }
+.palette-dot em { display: none; position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); background: var(--walnut); color: var(--cream); font-size: 11px; font-style: normal; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.palette-dot:hover em { display: block; }
+.palette-empty { font-size: 12px; color: rgba(255,253,247,.65); }
+.mood-count { font-size: 12px; font-weight: 700; color: rgba(255,253,247,.8); white-space: nowrap; }
+.mood-dock button { border: none; background: var(--brass-bright); color: var(--walnut); font-weight: 800; font-size: 13px; border-radius: 999px; padding: 9px 18px; }
+.mood-dock button:hover { background: #f3c96b; }
