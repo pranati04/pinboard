@@ -33,7 +33,7 @@ export default function App() {
     return <Dashboard app={app} />;
   }
   if (app.view.name === 'board') {
-    return <BoardView app={app} />;
+    return <BoardView key={app.view.boardId} app={app} />;
   }
   return (
     <div style={{ padding: 48, fontFamily: 'var(--font-body)' }}>

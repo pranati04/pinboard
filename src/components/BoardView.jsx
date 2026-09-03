@@ -19,6 +19,9 @@ const TOOLS = [
 
 export default function BoardView({ app }) {
   const board = app.boards.find((b) => b.id === app.view.boardId) || app.boards[0];
+  const [overrides, setOverrides] = useState({});
+  const [shareOpen, setShareOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState('edit');
   const [positions, setPositions] = useState(() =>
     Object.fromEntries(Object.values(app.nodes).filter((n) => n.boardId === board.id).map((n) => [n.id, { x: n.x, y: n.y }]))
   );
@@ -67,9 +70,6 @@ export default function BoardView({ app }) {
   };
 
   const deleteEdge = (id) => setEdges((e) => e.filter((c) => c.id !== id));
-  const [overrides, setOverrides] = useState({});
-  const [shareOpen, setShareOpen] = useState(false);
-  const [panelTab, setPanelTab] = useState('edit');
   const [allComments, setAllComments] = useState(() => app.comments.filter((c) => c.boardId === board.id));
   const [boardQuery, setBoardQuery] = useState('');
   const [activeTag, setActiveTag] = useState(null);
