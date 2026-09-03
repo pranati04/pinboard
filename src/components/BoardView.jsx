@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import BoardCanvas from './BoardCanvas.jsx';
 
 const TOOLS = [
@@ -14,8 +15,17 @@ const TOOLS = [
 
 export default function BoardView({ app }) {
   const board = app.boards.find((b) => b.id === app.view.boardId) || app.boards[0];
+  const [positions, setPositions] = useState(() =>
+    Object.fromEntries(Object.values(app.nodes).filter((n) => n.boardId === board.id).map((n) => [n.id, { x: n.x, y: n.y }]))
+  );
+  const [cam, setCam] = useState({ x: 40, y: 30, zoom: 1 });
+  const [tool, setTool] = useState('select');
+  const [selectedId, setSelectedId] = useState(null);
+
   const nodes = Object.values(app.nodes).filter((n) => n.boardId === board.id);
   const conns = app.connections.filter((c) => c.boardId === board.id);
+  const posOf = (n) => positions[n.id] || { x: n.x, y: n.y };
+  const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
 
   return (
     <div className="board-view">
@@ -27,35 +37,37 @@ export default function BoardView({ app }) {
           <span className={`vis static ${board.isPublic ? 'pub' : ''}`}>{board.isPublic ? '◉ public' : '◌ private'}</span>
         </div>
         <div className="board-actions">
-          <div className="zoom-pill" aria-hidden="true">
-            <button>−</button><span>100%</span><button>+</button>
-          </div>
+          <span className="cam-readout">{Math.round(cam.zoom * 100)}%</span>
           <button className="btn solid sm">Share</button>
         </div>
       </header>
 
       <div className="board-body-row">
         <aside className="tool-rail" aria-label="Tools">
-          {TOOLS.map((t, i) => (
-            <button key={t.id} className={`tool ${i === 0 ? 'active' : ''}`} title={t.label}>
+          {TOOLS.map((t) => (
+            <button key={t.id} className={`tool ${tool === t.id ? 'active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>
               <span>{t.icon}</span>
             </button>
           ))}
         </aside>
 
         <div className="canvas-frame">
-          <BoardCanvas board={board} nodes={nodes} connections={conns} groups={app.groups} />
-          <div className="canvas-hint">drag to pan · scroll to zoom · drop a tool to pin a node</div>
+          <BoardCanvas
+            board={board} nodes={nodes} connections={conns} groups={app.groups}
+            cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode}
+            selectedId={selectedId} onSelect={setSelectedId} activeTool={tool}
+          />
+          <div className="canvas-hint">drag canvas to pan · scroll to zoom · drag a card to move it (FR-24…28)</div>
         </div>
 
         <aside className="props-panel">
           <p className="eyebrow">Inspector</p>
-          <h3>Nothing selected</h3>
-          <p className="props-empty">Click a node to edit its title, content, tags and size. Node editor lands next.</p>
+          <h3>{selectedId ? (app.nodes[selectedId]?.title || 'Selected') : 'Nothing selected'}</h3>
+          <p className="props-empty">Click a node to select it. Full node editor lands next.</p>
           <div className="props-section">
             <h4>Layers ({nodes.length})</h4>
             {nodes.map((n) => (
-              <div className="layer-row" key={n.id}>
+              <div className={`layer-row ${selectedId === n.id ? 'on' : ''}`} key={n.id} onClick={() => setSelectedId(n.id)}>
                 <span className={`dot t-${n.type}`} />
                 <span>{n.title}</span>
               </div>

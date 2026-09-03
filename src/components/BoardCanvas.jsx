@@ -1,4 +1,4 @@
-import CanvasFrame from './CanvasFrame.jsx';
+import { useEffect, useRef } from 'react';
 
 const TEXTURES = {
   cork: 'radial-gradient(rgba(60,40,20,.16) 1.2px, transparent 1.3px)',
@@ -12,19 +12,117 @@ const BG = {
   sage: 'linear-gradient(150deg,#a3b195,#7d8b6f)',
 };
 
-export default function BoardCanvas({ board, nodes }) {
+const MIN_Z = 0.4;
+const MAX_Z = 2;
+
+export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode, selectedId, onSelect, activeTool }) {
+  const viewRef = useRef(null);
+  const dragRef = useRef(null);
+
+  const toWorld = (cx, cy) => {
+    const r = viewRef.current.getBoundingClientRect();
+    return { x: (cx - r.left - cam.x) / cam.zoom, y: (cy - r.top - cam.y) / cam.zoom };
+  };
+
+  useEffect(() => {
+    const el = viewRef.current;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      const mx = e.clientX - r.left;
+      const my = e.clientY - r.top;
+      setCam((c) => {
+        const zoom = Math.min(MAX_Z, Math.max(MIN_Z, c.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1)));
+        const k = zoom / c.zoom;
+        return { zoom, x: mx - (mx - c.x) * k, y: my - (my - c.y) * k };
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [setCam]);
+
+  const zoomBy = (f) => {
+    const r = viewRef.current.getBoundingClientRect();
+    const mx = r.width / 2;
+    const my = r.height / 2;
+    setCam((c) => {
+      const zoom = Math.min(MAX_Z, Math.max(MIN_Z, c.zoom * f));
+      const k = zoom / c.zoom;
+      return { zoom, x: mx - (mx - c.x) * k, y: my - (my - c.y) * k };
+    });
+  };
+
+  const onViewDown = (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('.node')) return;
+    onSelect(null);
+    dragRef.current = { kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onNodeDown = (e, n) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    onSelect(n.id);
+    const w = toWorld(e.clientX, e.clientY);
+    const p = posOf(n);
+    dragRef.current = { kind: 'node', id: n.id, dx: w.x - p.x, dy: w.y - p.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onMove = (e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    if (d.kind === 'pan') {
+      setCam((c) => ({ ...c, x: d.cx + (e.clientX - d.sx), y: d.cy + (e.clientY - d.sy) }));
+    } else {
+      const w = toWorld(e.clientX, e.clientY);
+      moveNode(d.id, Math.round(w.x - d.dx), Math.round(w.y - d.dy));
+    }
+  };
+
+  const endDrag = () => { dragRef.current = null; };
+
   return (
-    <CanvasFrame>
-      <div className="canvas-world" style={{ background: BG[board.background] || BG.cork }}>
+    <div
+      ref={viewRef}
+      className={`canvas-scroll ${activeTool === 'pan' ? 'tool-pan' : ''}`}
+      onPointerDown={onViewDown}
+      onPointerMove={onMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    >
+      <div
+        className="canvas-world"
+        style={{
+          background: BG[board.background] || BG.cork,
+          transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.zoom})`,
+        }}
+      >
         <div className="canvas-texture" style={{ backgroundImage: TEXTURES[board.background] || TEXTURES.cork }} />
-        {nodes.map((n) => (
-          <div key={n.id} className="node-shell" style={{ left: n.x, top: n.y, width: n.w }}>
-            <span className="pin" />
-            <span className="node-shell-title">{n.title}</span>
-            <span className="node-shell-type">{n.type}</span>
-          </div>
-        ))}
+        {nodes.map((n) => {
+          const p = posOf(n);
+          return (
+            <div
+              key={n.id}
+              className={`node ${selectedId === n.id ? 'selected' : ''}`}
+              style={{ left: p.x, top: p.y, width: n.w }}
+              onPointerDown={(e) => onNodeDown(e, n)}
+            >
+              <span className="pin" />
+              <span className="node-shell-title">{n.title}</span>
+              <span className="node-shell-type">{n.type}</span>
+            </div>
+          );
+        })}
       </div>
-    </CanvasFrame>
+
+      <div className="zoom-float">
+        <button onClick={() => zoomBy(1 / 1.25)} aria-label="Zoom out">−</button>
+        <span>{Math.round(cam.zoom * 100)}%</span>
+        <button onClick={() => zoomBy(1.25)} aria-label="Zoom in">+</button>
+        <button onClick={() => setCam({ x: 40, y: 30, zoom: 1 })} aria-label="Reset view">⤢</button>
+      </div>
+    </div>
   );
 }

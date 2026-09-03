@@ -37,6 +37,26 @@
 }
 .node-shell-title { font-weight: 700; display: block; }
 .node-shell-type { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .1em; }
+.node {
+  position: absolute; background: var(--cream); border-radius: 8px; padding: 14px 14px 10px;
+  box-shadow: var(--card-shadow); font-size: 13px; cursor: grab;
+  transform-origin: top left; user-select: none; touch-action: none;
+}
+.node:active { cursor: grabbing; }
+.node.selected { outline: 2.5px solid var(--brass-bright); box-shadow: var(--lift-shadow); z-index: 5; }
+.canvas-scroll { cursor: grab; }
+.canvas-scroll:active { cursor: grabbing; }
+.canvas-scroll.tool-pan { cursor: grab; }
+.zoom-float {
+  position: absolute; bottom: 14px; right: 14px; display: flex; align-items: center; gap: 2px;
+  background: rgba(34,26,18,.82); color: var(--cream); border-radius: 999px; padding: 4px 8px;
+  font-size: 12.5px; font-weight: 600; z-index: 6;
+}
+.zoom-float button { border: none; background: none; color: inherit; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; }
+.zoom-float button:hover { background: rgba(255,255,255,.14); }
+.cam-readout { font-size: 13px; font-weight: 700; color: var(--ink-faint); min-width: 44px; text-align: right; }
+.layer-row { cursor: pointer; }
+.layer-row.on { background: var(--paper-deep); font-weight: 700; }
 .canvas-hint {
   position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
   background: rgba(34,26,18,.78); color: var(--cream); font-size: 12.5px;
