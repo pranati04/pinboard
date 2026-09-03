@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import NodeCard from './NodeCard.jsx';
+import ConnectionsLayer from './ConnectionsLayer.jsx';
 
 const TEXTURES = {
   cork: 'radial-gradient(rgba(60,40,20,.16) 1.2px, transparent 1.3px)',
@@ -16,7 +17,7 @@ const BG = {
 const MIN_Z = 0.4;
 const MAX_Z = 2;
 
-export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool }) {
+export default function BoardCanvas({ board, nodes, connections, nodeMap, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge }) {
   const viewRef = useRef(null);
   const dragRef = useRef(null);
 
@@ -65,6 +66,7 @@ export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode
     if (e.button !== 0) return;
     if (e.target.closest('.resize-handle')) return;
     e.stopPropagation();
+    if (activeTool === 'connect') { onNodeClick?.(n); return; }
     onSelect(n.id);
     const w = toWorld(e.clientX, e.clientY);
     const p = posOf(n);
@@ -115,9 +117,15 @@ export default function BoardCanvas({ board, nodes, cam, setCam, posOf, moveNode
         }}
       >
         <div className="canvas-texture" style={{ backgroundImage: TEXTURES[board.background] || TEXTURES.cork }} />
+        <ConnectionsLayer connections={connections} nodeMap={nodeMap} posOf={posOf} onDelete={onDeleteEdge} />
         {nodes.map((n) => {
           const p = posOf(n);
-          return <NodeCard key={n.id} n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} />;
+          const extra = connectFrom === n.id ? ' connect-source' : '';
+          return (
+            <span key={n.id} className={`node-wrap${extra}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: selectedId === n.id ? 6 : 3 }}>
+              <NodeCard n={{ ...n, _x: p.x, _y: p.y }} selected={selectedId === n.id} onDragDown={onDragDown} onResizeDown={onResizeDown} />
+            </span>
+          );
         })}
       </div>
 

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import BoardCanvas from './BoardCanvas.jsx';
+import { REL_LABELS } from '../data/seed.js';
 
 const TOOLS = [
   { id: 'select', icon: '➤', label: 'Select (V)' },
@@ -24,11 +25,34 @@ export default function BoardView({ app }) {
   );
   const [tool, setTool] = useState('select');
   const [selectedId, setSelectedId] = useState(null);
+  const [edges, setEdges] = useState(() => app.connections.filter((c) => c.boardId === board.id));
+  const [connectFrom, setConnectFrom] = useState(null);
+  const [pendingEdge, setPendingEdge] = useState(null);
 
   const nodes = Object.values(app.nodes)
     .filter((n) => n.boardId === board.id)
     .map((n) => ({ ...n, ...(sizes[n.id] ? { w: sizes[n.id].w, h: sizes[n.id].h } : {}) }));
-  const conns = app.connections.filter((c) => c.boardId === board.id);
+  const nodeMap = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, n])), [nodes]);
+
+  const onNodeClick = (n) => {
+    if (!connectFrom) { setConnectFrom(n.id); return; }
+    if (connectFrom === n.id) { setConnectFrom(null); return; }
+    setPendingEdge({ from: connectFrom, to: n.id, label: REL_LABELS[0] });
+    setConnectFrom(null);
+  };
+
+  const commitEdge = () => {
+    if (!pendingEdge) return;
+    setEdges((e) => [...e, { id: `c-${Date.now()}`, boardId: board.id, ...pendingEdge }]);
+    setPendingEdge(null);
+    setTool('select');
+  };
+
+  const deleteEdge = (id) => setEdges((e) => e.filter((c) => c.id !== id));
+
+  const nodes = Object.values(app.nodes)
+    .filter((n) => n.boardId === board.id)
+    .map((n) => ({ ...n, ...(sizes[n.id] ? { w: sizes[n.id].w, h: sizes[n.id].h } : {}) }));
   const posOf = (n) => positions[n.id] || { x: n.x, y: n.y };
   const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
   const resizeNode = (id, w, h) => setSizes((s) => ({ ...s, [id]: { w, h } }));
@@ -59,11 +83,32 @@ export default function BoardView({ app }) {
 
         <div className="canvas-frame">
           <BoardCanvas
-            board={board} nodes={nodes} connections={conns} groups={app.groups}
+            board={board} nodes={nodes} connections={edges} nodeMap={nodeMap} groups={app.groups}
             cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode} resizeNode={resizeNode}
             selectedId={selectedId} onSelect={setSelectedId} activeTool={tool}
+            connectFrom={connectFrom} onNodeClick={onNodeClick} onDeleteEdge={deleteEdge}
           />
-          <div className="canvas-hint">drag canvas to pan · scroll to zoom · drag a card to move it (FR-24…28)</div>
+          {tool === 'connect' && (
+            <div className="connect-banner">
+              {connectFrom ? `Source: ${nodeMap[connectFrom]?.title} — now click the target node` : 'Connect mode: click a source node, then a target (FR-30)'}
+              <button onClick={() => { setTool('select'); setConnectFrom(null); }}>✕</button>
+            </div>
+          )}
+          {pendingEdge && (
+            <div className="edge-dialog">
+              <p>{nodeMap[pendingEdge.from]?.title} → {nodeMap[pendingEdge.to]?.title}</p>
+              <div className="edge-labels">
+                {REL_LABELS.map((l) => (
+                  <button key={l} className={pendingEdge.label === l ? 'on' : ''} onClick={() => setPendingEdge({ ...pendingEdge, label: l })}>{l}</button>
+                ))}
+              </div>
+              <div className="edge-dialog-actions">
+                <button className="btn ghost sm" onClick={() => setPendingEdge(null)}>Cancel</button>
+                <button className="btn solid sm" onClick={commitEdge}>Create link →</button>
+              </div>
+            </div>
+          )}
+          <div className="canvas-hint">pick ⟡ connect, click two cards, label the link · click a wire to delete (FR-30…35)</div>
         </div>
 
         <aside className="props-panel">

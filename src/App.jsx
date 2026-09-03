@@ -8,6 +8,7 @@ import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/board.css';
 import './styles/nodes.css';
+import './styles/edges.css';
 
 export default function App() {
   const app = useAppState();
