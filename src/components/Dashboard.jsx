@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { BOARD_KINDS } from '../data/seed.js';
 
 function timeAgo(ts) {
   const m = Math.floor((Date.now() - ts) / 60000);
@@ -17,13 +18,16 @@ const BG = {
 
 export default function Dashboard({ app }) {
   const [query, setQuery] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [kindFilter, setKindFilter] = useState(null);
   const boards = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return app.boards;
-    return app.boards.filter((b) =>
-      (b.title + ' ' + (b.description || '')).toLowerCase().includes(q)
-    );
-  }, [app.boards, query]);
+    return app.boards.filter((b) => {
+      const okQ = !q || (b.title + ' ' + (b.description || '')).toLowerCase().includes(q);
+      const okK = !kindFilter || (b.kind || 'pinboard') === kindFilter;
+      return okQ && okK;
+    });
+  }, [app.boards, query, kindFilter]);
 
   return (
     <div className="dash">
@@ -49,7 +53,16 @@ export default function Dashboard({ app }) {
             <p className="eyebrow">Dashboard · SRS §9.1</p>
             <h1>Your walls</h1>
           </div>
-          <button className="btn solid large" onClick={() => app.openBoard(app.boards[0].id)}>+ New board</button>
+          <button className="btn solid large" onClick={() => setPickerOpen(true)}>+ New board</button>
+        </div>
+
+        <div className="kind-tabs">
+          <button className={!kindFilter ? 'on' : ''} onClick={() => setKindFilter(null)}>All</button>
+          {Object.values(BOARD_KINDS).map((k) => (
+            <button key={k.id} className={kindFilter === k.id ? 'on' : ''} onClick={() => setKindFilter(kindFilter === k.id ? null : k.id)}>
+              {k.icon} {k.name}
+            </button>
+          ))}
         </div>
 
         <div className="board-grid">
@@ -60,6 +73,7 @@ export default function Dashboard({ app }) {
                 <span className={`vis ${b.isPublic ? 'pub' : ''}`}>{b.isPublic ? '◉ public' : '◌ private'}</span>
               </div>
               <div className="board-body">
+                <div className="kind-pill">{BOARD_KINDS[b.kind || 'pinboard']?.icon} {BOARD_KINDS[b.kind || 'pinboard']?.name}</div>
                 <h3>{b.title}</h3>
                 <p>{b.description}</p>
                 <div className="board-foot">
@@ -72,6 +86,11 @@ export default function Dashboard({ app }) {
         </div>
         {boards.length === 0 && <p className="dash-empty hand">nothing pinned here yet — try another search…</p>}
       </main>
+      {pickerOpen && <BoardPicker onClose={() => setPickerOpen(false)} onCreate={(kind) => {
+        const id = app.addBoard(kind);
+        setPickerOpen(false);
+        app.openBoard(id);
+      }} />}
     </div>
   );
 }
@@ -82,6 +101,31 @@ function MiniPreview({ nodes }) {
       {nodes.slice(0, 5).map((n, i) => (
         <span key={n.id} className={`mini-node t-${n.type}`} style={{ left: `${8 + i * 17}%`, top: `${14 + ((i * 37) % 52)}%` }} />
       ))}
+    </div>
+  );
+}
+
+function BoardPicker({ onClose, onCreate }) {
+  return (
+    <div className="modal-veil" onClick={onClose}>
+      <div className="modal wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <p className="eyebrow">New board · SRS §10.1</p>
+            <h2>What are you making?</h2>
+          </div>
+          <button className="btn ghost sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="kind-grid">
+          {Object.values(BOARD_KINDS).map((k) => (
+            <button key={k.id} className="kind-card" onClick={() => onCreate(k)}>
+              <span className="kind-icon">{k.icon}</span>
+              <strong>{k.name}</strong>
+              <span>{k.blurb}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

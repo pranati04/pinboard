@@ -38,6 +38,18 @@
 .board-body p { font-size: 13.5px; color: #5c4f40; line-height: 1.5; min-height: 40px; }
 .board-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--ink-faint); font-weight: 500; }
 .dash-empty { text-align: center; font-size: 26px; color: var(--ink-faint); margin-top: 60px; }
+.kind-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.kind-tabs button { border: 1.5px solid var(--line); background: var(--cream); border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; }
+.kind-tabs button.on { background: var(--walnut); color: var(--cream); border-color: var(--walnut); }
+.kind-pill { display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--brass); margin-bottom: 6px; }
+.modal.wide { width: 640px; }
+.kind-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.kind-card { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; background: var(--cream); border: 1.5px solid var(--line); border-radius: 14px; padding: 22px 18px; transition: transform .15s ease, box-shadow .15s ease; }
+.kind-card:hover { transform: translateY(-3px); box-shadow: var(--lift-shadow); border-color: var(--brass); }
+.kind-card strong { font-size: 16px; }
+.kind-card span:last-child { font-size: 13px; color: #5c4f40; line-height: 1.5; }
+.kind-icon { font-size: 30px; }
+@media (max-width: 700px) { .kind-grid { grid-template-columns: 1fr; } }
 
 @media (max-width: 960px) {
   .board-grid { grid-template-columns: 1fr; }
