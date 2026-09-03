@@ -50,9 +50,6 @@ export default function BoardView({ app }) {
 
   const deleteEdge = (id) => setEdges((e) => e.filter((c) => c.id !== id));
 
-  const nodes = Object.values(app.nodes)
-    .filter((n) => n.boardId === board.id)
-    .map((n) => ({ ...n, ...(sizes[n.id] ? { w: sizes[n.id].w, h: sizes[n.id].h } : {}) }));
   const posOf = (n) => positions[n.id] || { x: n.x, y: n.y };
   const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
   const resizeNode = (id, w, h) => setSizes((s) => ({ ...s, [id]: { w, h } }));
