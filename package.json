@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/index.js",
+    "server:php": "php -S localhost:5174 server-php/router.php",
+    "start:php": "npm run build && php -S localhost:5174 -t dist server-php/router.php",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server/index.js"
   },
   "dependencies": {
+    "express": "^4.22.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
