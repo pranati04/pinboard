@@ -10,10 +10,12 @@
 .editor-field input:focus, .editor-field textarea:focus { outline: none; border-color: var(--brass); }
 .swatches { display: flex; gap: 8px; margin-top: 8px; }
 .swatch { width: 34px; height: 34px; border-radius: 10px; border: 2px solid transparent; }
-.swatch.color-cream { background: #fffdf7; border-color: var(--line); }
-.swatch.color-butter { background: #fdf3d8; }
-.swatch.color-blush { background: #f9e8e4; }
-.swatch.color-sky { background: #eef4f7; }
+.swatch.color-cream { background: #fdf3da; border-color: var(--line); }
+.swatch.color-butter { background: #ffd97e; }
+.swatch.color-blush { background: #f6b8a9; }
+.swatch.color-sky { background: #b9d9ec; }
+.swatch.color-sage { background: #c6d7ae; }
+.swatch.color-lilac { background: #d9c8ef; }
 .swatch.on { border-color: var(--walnut); box-shadow: 0 0 0 2px var(--brass-bright); }
 .editor-actions { display: flex; justify-content: space-between; margin-top: 4px; }
 .btn.danger { background: #f7e3e0; color: #8c3b32; border-color: #e5bdb7; }

@@ -11,9 +11,172 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/src/styles/tokens.css" />
+    <link rel="stylesheet" href="/src/styles/base.css" />
+    <link rel="stylesheet" href="/src/styles/landing.css" />
+    <link rel="stylesheet" href="/src/styles/auth.css" />
+    <link rel="stylesheet" href="/src/styles/dashboard.css" />
+    <link rel="stylesheet" href="/src/styles/board.css" />
+    <link rel="stylesheet" href="/src/styles/nodes.css" />
+    <link rel="stylesheet" href="/src/styles/edges.css" />
+    <link rel="stylesheet" href="/src/styles/groups.css" />
+    <link rel="stylesheet" href="/src/styles/panels.css" />
+    <link rel="stylesheet" href="/src/styles/mood.css" />
+    <link rel="stylesheet" href="/src/styles/map.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <!-- Landing view: fully static HTML -->
+    <div id="view-landing" class="landing">
+      <header class="nav">
+        <div class="brand">
+          <span class="brand-pin"></span>
+          <span class="brand-name">Pinboard</span>
+        </div>
+        <nav class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="#boards">Boards</a>
+        </nav>
+        <div class="nav-cta">
+          <button class="btn ghost" data-go="login">Sign in</button>
+          <button class="btn solid" data-go="dashboard">Open studio →</button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Online visual corkboard · SRS §1</p>
+          <h1>Think on a wall,<br />not in a list.</h1>
+          <p class="lede">
+            Pinboard is a visual workspace for collecting, organizing and connecting
+            ideas — notes, images, links and files arranged freely, tied together
+            with labelled relationships.
+          </p>
+          <div class="hero-cta">
+            <button class="btn solid large" data-go="dashboard">Start a board</button>
+            <button class="btn outline large" data-go="login">Sign in</button>
+          </div>
+          <div class="hero-meta">
+            <span>✦ Free-form canvas</span><span>✦ Labelled links</span><span>✦ Private by default</span>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="hero-art-layer" data-parallax="0.12">
+            <div class="float-card fc-a" style="--rot: -6deg; --depth: 1">
+              <span class="pin"></span>
+              <img src="https://images.unsplash.com/photo-1502691876148-a84978e59af8?w=500&q=60" alt="" />
+              <span class="hand">ochre study</span>
+            </div>
+            <div class="float-card fc-b" style="--rot: 5deg; --depth: 1">
+              <span class="pin"></span>
+              <span class="fc-note-title">Core claim</span>
+              <p>Spatial arrangement improves recall.</p>
+              <span class="tag">thesis</span>
+            </div>
+          </div>
+          <div class="hero-art-layer" data-parallax="0.22">
+            <div class="float-card fc-c" style="--rot: -3deg; --depth: 2">
+              <span class="pin"></span>
+              <img src="https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=500&q=60" alt="" />
+              <span class="hand">linen texture</span>
+            </div>
+            <div class="float-card fc-d" style="--rot: 4deg; --depth: 2">
+              <span class="pin"></span>
+              <span class="fc-link">↗ cognitive-maps.pdf</span>
+              <svg viewBox="0 0 120 40" class="fc-wire"><path d="M4 34 C 40 34, 60 6, 116 6" fill="none" stroke-width="2" stroke-dasharray="5 4" /><circle cx="116" cy="6" r="3.5" /></svg>
+              <span class="fc-wire-label">Supports</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track">
+          <span>brainstorming <i>✦</i></span><span>research <i>✦</i></span><span>study boards <i>✦</i></span><span>moodboards <i>✦</i></span><span>project planning <i>✦</i></span><span>story mapping <i>✦</i></span>
+          <span>brainstorming <i>✦</i></span><span>research <i>✦</i></span><span>study boards <i>✦</i></span><span>moodboards <i>✦</i></span><span>project planning <i>✦</i></span><span>story mapping <i>✦</i></span>
+        </div>
+      </div>
+
+      <section class="section" id="features">
+        <p class="eyebrow reveal">Capabilities · SRS §2–3</p>
+        <h2 class="reveal">Everything a physical corkboard wishes it could do</h2>
+        <div class="feature-grid">
+          <article class="feature-card reveal">
+            <span class="feature-icon">◈</span>
+            <h3>Mixed media nodes</h3>
+            <p>Text, images, video, links, files and audio live side by side on one board.</p>
+          </article>
+          <article class="feature-card reveal">
+            <span class="feature-icon">⟡</span>
+            <h3>Thought connections</h3>
+            <p>Draw labelled relationships — Supports, Causes, Depends on — between any two nodes.</p>
+          </article>
+          <article class="feature-card reveal">
+            <span class="feature-icon">⬔</span>
+            <h3>Groups &amp; tags</h3>
+            <p>Cluster related ideas into groups, tag anything, then filter the board in one click.</p>
+          </article>
+          <article class="feature-card reveal">
+            <span class="feature-icon">◎</span>
+            <h3>Infinite canvas</h3>
+            <p>Pan and zoom across a generous workspace with buttery drag physics.</p>
+          </article>
+          <article class="feature-card reveal">
+            <span class="feature-icon">⬣</span>
+            <h3>Share with control</h3>
+            <p>Private by default. Invite collaborators as viewers or editors, or publish a link.</p>
+          </article>
+          <article class="feature-card reveal">
+            <span class="feature-icon">✎</span>
+            <h3>Comment anywhere</h3>
+            <p>Discuss the whole board or annotate a single node without leaving context.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section how" id="how">
+        <p class="eyebrow reveal">Workflow · SRS §10</p>
+        <h2 class="reveal">From blank wall to shared thinking in three moves</h2>
+        <div class="steps">
+          <div class="step reveal">
+            <span class="step-n">01</span>
+            <h3>Create a board</h3>
+            <p>Name it, pick a backdrop — cork, linen or sage — and start with a blank canvas.</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-n">02</span>
+            <h3>Pin anything</h3>
+            <p>Drop notes, images, links and files. Arrange them the way your mind works.</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-n">03</span>
+            <h3>Connect the dots</h3>
+            <p>Link nodes with labelled connections and watch the argument take shape.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-band reveal" id="boards">
+        <div>
+          <h2>Your next idea deserves a wall.</h2>
+          <p>Open the studio and pin your first board — no setup, just a canvas.</p>
+        </div>
+        <button class="btn cream large" data-go="dashboard">Open the studio →</button>
+      </section>
+
+      <footer class="footer">
+        <span>Pinboard — Online Visual Corkboard &amp; Thought-Mapping System</span>
+        <span class="hand">pinned with care · MCA 2026</span>
+      </footer>
+    </div>
+
+    <!-- Vanilla JS views -->
+    <div id="view-auth" style="display: none"></div>
+    <div id="view-dashboard" style="display: none"></div>
+
+    <!-- React island: the interactive board canvas -->
+    <div id="view-board" style="display: none"></div>
+
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
