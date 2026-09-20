@@ -3,6 +3,8 @@ const COLORS = [
   { id: 'butter', label: 'Butter' },
   { id: 'blush', label: 'Blush' },
   { id: 'sky', label: 'Mist' },
+  { id: 'sage', label: 'Sage' },
+  { id: 'lilac', label: 'Lilac' },
 ];
 
 export default function NodeEditor({ node, onChange, onDelete, onDuplicate }) {

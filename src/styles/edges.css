@@ -1,13 +1,21 @@
-.edges-layer { position: absolute; inset: 0; width: 2400px; height: 1600px; overflow: visible; pointer-events: none; z-index: 2; }
+.edges-layer { position: absolute; left: -5000px; top: -5000px; width: 10000px; height: 10000px; overflow: visible; pointer-events: none; z-index: 2; }
 .edge { pointer-events: auto; }
 .edge-line { fill: none; stroke: #3a2e22; stroke-width: 2.2; opacity: .85; }
 .edge-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
 .edge:hover .edge-line { stroke: var(--rose); }
+.edge-label-grp { cursor: pointer; }
+.edge-label-grp.unnamed { opacity: 0; transition: opacity .15s ease; }
+.edge:hover .edge-label-grp.unnamed { opacity: 1; }
+.edge-label-grp:hover .edge-label-bg { fill: var(--brass); }
 .edge-label-bg { fill: var(--walnut); }
 .edge-label { fill: var(--cream); font-size: 12px; font-weight: 700; font-family: var(--font-body); }
 .node { z-index: 3; }
 .node.connect-source { outline: 2.5px dashed var(--brass-bright); }
-.node-wrap.connect-source .node { outline: 2.5px dashed var(--brass-bright); }
+.node-wrap.connect-source .node,
+.node-wrap.connect-source .thought,
+.node-wrap.connect-source .mood-photo,
+.node-wrap.connect-source .mood-swatch,
+.node-wrap.connect-source .mood-note { outline: 2.5px dashed var(--brass-bright); }
 .edge-dialog {
   position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%); z-index: 9;
   background: var(--cream); border: 1px solid var(--line); border-radius: 14px;
@@ -23,4 +31,10 @@
 .edge-labels { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .edge-labels button { border: 1.5px solid var(--line); background: none; border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; }
 .edge-labels button.on { background: var(--walnut); color: var(--cream); border-color: var(--walnut); }
+.edge-name-input {
+  width: 100%; box-sizing: border-box; border: 1.5px solid var(--line); border-radius: 9px;
+  padding: 9px 11px; font-size: 13px; font-family: var(--font-body); background: var(--cream);
+  margin-bottom: 10px;
+}
+.edge-name-input:focus { outline: none; border-color: var(--brass); }
 .edge-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }

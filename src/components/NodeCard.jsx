@@ -95,14 +95,24 @@ function Content({ n }) {
             onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         </span>
       );
-    case 'link':
+    case 'link': {
+      const url = (n.content || '').trim();
+      if (!/^https?:\/\/.+\..+/.test(url)) {
+        return (
+          <span className="node-linkbox empty">
+            <span className="node-link-icon">↗</span>
+            <span className="node-link-url">No URL yet — paste one in the inspector →</span>
+          </span>
+        );
+      }
       return (
-        <a className="node-linkbox" href={n.content} target="_blank" rel="noreferrer" onPointerDown={(e) => e.stopPropagation()}>
+        <a className="node-linkbox" href={url} target="_blank" rel="noreferrer" onPointerDown={(e) => e.stopPropagation()}>
           <span className="node-link-icon">↗</span>
-          <span className="node-link-url">{n.content.replace(/^https?:\/\//, '').slice(0, 42)}</span>
+          <span className="node-link-url">{url.replace(/^https?:\/\//, '').slice(0, 42)}</span>
           <span className="node-link-open">Open →</span>
         </a>
       );
+    }
     case 'video':
       return (
         <span className="node-video-ph" onPointerDown={(e) => e.stopPropagation()}>

@@ -1,7 +1,9 @@
-.node.color-cream { background: #fffdf7; }
-.node.color-butter { background: #fdf3d8; }
-.node.color-blush { background: #f9e8e4; }
-.node.color-sky { background: #eef4f7; }
+.node.color-cream { background: #fdf3da; }
+.node.color-butter { background: #ffd97e; }
+.node.color-blush { background: #f6b8a9; }
+.node.color-sky { background: #b9d9ec; }
+.node.color-sage { background: #c6d7ae; }
+.node.color-lilac { background: #d9c8ef; }
 
 .node-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .node-badge {
@@ -25,6 +27,8 @@
   text-decoration: none; color: inherit;
 }
 .node-linkbox:hover { border-color: var(--sky); }
+.node-linkbox.empty { border-style: dashed; cursor: default; }
+.node-linkbox.empty .node-link-url { color: var(--ink-faint); font-weight: 500; }
 .node-link-icon { font-size: 18px; color: var(--sky); }
 .node-link-url { font-size: 12.5px; font-weight: 600; color: #3d5a6c; word-break: break-all; }
 .node-link-open { font-size: 12px; font-weight: 700; color: var(--sky); }
