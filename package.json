@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
-    "server:php": "php -S localhost:5174 server-php/router.php",
-    "start:php": "npm run build && php -S localhost:5174 -t dist server-php/router.php",
+    "server:php": "\"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 server-php/router.php",
+    "start:php": "npm run build && \"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 -t dist server-php/router.php",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js"
