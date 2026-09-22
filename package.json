@@ -5,15 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "node server/index.js",
-    "server:php": "\"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 server-php/router.php",
-    "start:php": "npm run build && \"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 -t dist server-php/router.php",
+    "server": "\"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 server/router.php",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node server/index.js"
+    "start": "npm run build && \"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 -t dist server/router.php"
   },
   "dependencies": {
-    "express": "^4.22.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -1,8 +1,8 @@
 <?php
 // Front controller for the PHP built-in server.
-//   Dev (API only):        php -S localhost:5174 server-php/router.php
+//   Dev (API only):        php -S 127.0.0.1:5174 server/router.php
 //   All-in-one (serve app): npm run build, then
-//                           php -S localhost:5174 -t dist server-php/router.php
+//                           php -S 127.0.0.1:5174 -t dist server/router.php
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 if (str_starts_with($path, '/api/')) {
