@@ -10,82 +10,14 @@ function pdo(): PDO {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ];
-    $root = new PDO("mysql:host={$cfg['host']};charset=utf8mb4", $cfg['user'], $cfg['pass'], $opts);
-    $root->exec("CREATE DATABASE IF NOT EXISTS `{$cfg['name']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    $pdo = new PDO("mysql:host={$cfg['host']};dbname={$cfg['name']};charset=utf8mb4", $cfg['user'], $cfg['pass'], $opts);
-    bootstrap($pdo);
+    $dsn = "mysql:host={$cfg['host']};port={$cfg['port']};dbname={$cfg['name']};charset=utf8mb4";
+    // fast path: DB already exists — one connect, no bootstrap queries
+    $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], $opts);
     return $pdo;
 }
 
-function bootstrap(PDO $pdo): void {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS users (
-        id VARCHAR(64) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        pass_hash VARCHAR(255) NOT NULL,
-        created_at BIGINT NOT NULL
-    ) ENGINE=InnoDB");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sessions (
-        token VARCHAR(128) PRIMARY KEY,
-        user_id VARCHAR(64) NOT NULL,
-        created_at BIGINT NOT NULL,
-        INDEX idx_user (user_id)
-    ) ENGINE=InnoDB");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS boards (
-        id VARCHAR(64) NOT NULL,
-        user_id VARCHAR(64) NOT NULL,
-        kind VARCHAR(32) NOT NULL DEFAULT 'pinboard',
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        is_public TINYINT NOT NULL DEFAULT 0,
-        background VARCHAR(32) NOT NULL DEFAULT 'cork',
-        updated_at BIGINT NOT NULL,
-        PRIMARY KEY (id, user_id)
-    ) ENGINE=InnoDB");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS nodes (
-        id VARCHAR(64) NOT NULL,
-        board_id VARCHAR(64) NOT NULL,
-        type VARCHAR(16) NOT NULL DEFAULT 'text',
-        title VARCHAR(255),
-        content TEXT,
-        x DOUBLE DEFAULT 0, y DOUBLE DEFAULT 0,
-        w DOUBLE DEFAULT 250, h DOUBLE DEFAULT 0,
-        tags TEXT,
-        color VARCHAR(32) DEFAULT 'cream',
-        PRIMARY KEY (id, board_id)
-    ) ENGINE=InnoDB");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS connections (
-        id VARCHAR(64) NOT NULL,
-        board_id VARCHAR(64) NOT NULL,
-        from_id VARCHAR(64) NOT NULL,
-        to_id VARCHAR(64) NOT NULL,
-        label VARCHAR(255),
-        PRIMARY KEY (id, board_id)
-    ) ENGINE=InnoDB");
-    // NOTE: `groups` is reserved in MySQL 8 — table is named board_groups.
-    $pdo->exec("CREATE TABLE IF NOT EXISTS board_groups (
-        id VARCHAR(64) NOT NULL,
-        board_id VARCHAR(64) NOT NULL,
-        name VARCHAR(255),
-        x DOUBLE DEFAULT 0, y DOUBLE DEFAULT 0, w DOUBLE DEFAULT 0, h DOUBLE DEFAULT 0,
-        PRIMARY KEY (id, board_id)
-    ) ENGINE=InnoDB");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS comments (
-        id VARCHAR(64) NOT NULL,
-        board_id VARCHAR(64) NOT NULL,
-        node_id VARCHAR(64) NULL,
-        author VARCHAR(255),
-        content TEXT,
-        created_at BIGINT,
-        PRIMARY KEY (id, board_id)
-    ) ENGINE=InnoDB");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS shares (
-        board_id VARCHAR(64) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        role VARCHAR(16) NOT NULL DEFAULT 'viewer',
-        PRIMARY KEY (board_id, email)
-    ) ENGINE=InnoDB");
-}
+// Schema setup is manual: import server/schema.sql in phpMyAdmin.
+// NOTE: `groups` is reserved in MySQL 8 — table is named board_groups.
 
 function now_ms(): int { return (int) round(microtime(true) * 1000); }
 
@@ -166,7 +98,7 @@ function verify_user(string $email, string $password): ?array {
     $st->execute([strtolower($email)]);
     $u = $st->fetch();
     if (!$u || !password_verify($password, $u['pass_hash'])) return null;
-    return ['id' => $u['id'], 'name' => $u['name'], 'email' => $u['email']];
+    return ['id' => $u['id'], 'name' => $u['name'], 'email' => $u['email'], 'createdAt' => (int) $u['created_at']];
 }
 
 function create_session(string $userId): string {
@@ -177,7 +109,7 @@ function create_session(string $userId): string {
 }
 
 function user_by_token(string $token): ?array {
-    $st = pdo()->prepare('SELECT u.id, u.name, u.email FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?');
+    $st = pdo()->prepare('SELECT u.id, u.name, u.email, u.created_at AS createdAt FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?');
     $st->execute([$token]);
     return $st->fetch() ?: null;
 }
@@ -252,6 +184,7 @@ function create_board(string $userId, string $kindId, ?string $title): array {
 function patch_board(string $boardId, string $userId, array $patch): void {
     $sets = []; $vals = [];
     if (array_key_exists('title', $patch)) { $sets[] = 'title = ?'; $vals[] = $patch['title']; }
+    if (array_key_exists('description', $patch)) { $sets[] = 'description = ?'; $vals[] = $patch['description']; }
     if (array_key_exists('isPublic', $patch)) { $sets[] = 'is_public = ?'; $vals[] = $patch['isPublic'] ? 1 : 0; }
     if (array_key_exists('background', $patch)) { $sets[] = 'background = ?'; $vals[] = $patch['background']; }
     if (!$sets) return;
@@ -379,10 +312,8 @@ function ensure_guest(): void {
     if (!$st->fetch()) {
         pdo()->prepare('INSERT INTO users (id, name, email, pass_hash, created_at) VALUES (?, ?, ?, ?, ?)')
             ->execute([GUEST_ID, 'Guest', 'guest@pinboard.local', password_hash(bin2hex(random_bytes(12)), PASSWORD_DEFAULT), now_ms()]);
+        clone_seed_boards(GUEST_ID);
     }
-    $st = pdo()->prepare('SELECT id FROM boards WHERE user_id = ? LIMIT 1');
-    $st->execute([GUEST_ID]);
-    if (!$st->fetch()) clone_seed_boards(GUEST_ID);
 }
 
 function seed_new_user(string $userId): void {

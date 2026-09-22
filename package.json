@@ -7,6 +7,8 @@
     "dev": "vite",
     "server": "\"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 server/router.php",
     "build": "vite build",
+    "test": "node --test src/store/boardSaver.test.js",
+    "test:e2e": "npm run build && node --test server/website.test.mjs",
     "preview": "vite preview",
     "start": "npm run build && \"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 -t dist server/router.php"
   },
@@ -15,6 +17,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.55.1",
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^5.4.8"
   }

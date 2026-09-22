@@ -1,7 +1,5 @@
 -- Pinboard schema for MySQL (import via phpMyAdmin or `mysql < schema.sql`).
--- The PHP API also runs this automatically on first connect, so importing is optional.
-CREATE DATABASE IF NOT EXISTS pinboard CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE pinboard;
+-- Select your database in phpMyAdmin, then import this file before running the PHP API.
 
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(64) PRIMARY KEY,

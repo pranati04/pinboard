@@ -76,8 +76,9 @@ export function renderAuth(el, mode) {
     try {
       if (isRegister) await register(name, email, password);
       else await login(email, password);
+      draft.password = '';
       errorEl.hidden = true;
-      setView({ name: 'dashboard' });
+      await setView({ name: 'dashboard' });
     } catch (err2) {
       fail(err2.message);
       btn.disabled = false;

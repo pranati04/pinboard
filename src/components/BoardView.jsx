@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createBoardSaver } from '../store/boardSaver.js';
+import { registerBeforeLeave } from '../store/appStore.js';
 import BoardCanvas from './BoardCanvas.jsx';
 import NodeEditor from './NodeEditor.jsx';
 import Comments from './Comments.jsx';
 import { openShareModal } from '../views/shareModal.js';
+import { openBoardDetails } from '../views/dashboard.js';
 import { api } from '../api.js';
 import { BOARD_KINDS, NODE_TYPES, REL_LABELS } from '../data/seed.js';
 import { paletteFromNodes, shuffleLayout } from './moodUtils.js';
@@ -55,7 +58,7 @@ const NODE_DEFAULTS = {
 };
 
 export default function BoardView({ app }) {
-  const board = app.board || app.boards.find((b) => b.id === app.view.boardId) || app.boards[0];
+  const [board, setBoard] = useState(() => app.board || app.boards.find((b) => b.id === app.view.boardId) || app.boards[0]);
   const kind = BOARD_KINDS[board.kind] || BOARD_KINDS.pinboard;
   const isMood = kind.id === 'moodboard';
   const isMap = kind.id === 'thoughtmap';
@@ -84,6 +87,8 @@ export default function BoardView({ app }) {
   const patchNode = (id, patch) => setOverrides((o) => ({ ...o, [id]: { ...(o[id] || {}), ...patch } }));
   const deleteNode = (id) => {
     setOverrides((o) => ({ ...o, [id]: { ...(o[id] || {}), _deleted: true } }));
+    setEdges((all) => all.filter((edge) => edge.from !== id && edge.to !== id));
+    setAllComments((all) => all.filter((comment) => comment.nodeId !== id));
     setSelectedId(null);
   };
   const visibleNodes = nodes.filter((n) => !n._deleted);
@@ -220,28 +225,46 @@ export default function BoardView({ app }) {
 
   // Persist the whole board document, debounced — fires after any change
   // to nodes, positions, sizes, edges, groups or comments.
-  const savedJson = useRef(null);
+  const doc = {
+    nodes: visibleNodes.map((n) => ({
+      id: n.id, type: n.type, title: n.title, content: n.content,
+      tags: n.tags || [], color: n.color || 'cream',
+      x: posOf(n).x, y: posOf(n).y, w: n.w, h: n.h || 0,
+    })),
+    connections: edges.filter((edge) => visibleNodeMap[edge.from] && visibleNodeMap[edge.to])
+      .map(({ id, from, to, label }) => ({ id, from, to, label })),
+    groups: localGroups.map(({ id, name, x, y, w, h }) => ({ id, name, x, y, w, h })),
+    comments: allComments.filter((comment) => !comment.nodeId || visibleNodeMap[comment.nodeId])
+      .map(({ id, nodeId, author, content, createdAt }) => ({ id, nodeId, author, content, createdAt })),
+  };
+  const json = JSON.stringify(doc);
+  const [saveStatus, setSaveStatus] = useState({ state: 'saved', error: '' });
+  const [saver] = useState(() => createBoardSaver({
+    initial: doc,
+    save: (snapshot) => api.put(`/api/boards/${encodeURIComponent(board.id)}/state`, snapshot),
+  }));
+  useLayoutEffect(() => {
+    const unsubscribe = saver.subscribe(setSaveStatus);
+    const unregister = registerBeforeLeave(() => saver.flush());
+    return () => { unsubscribe(); unregister(); saver.cancelTimer(); };
+  }, [saver]);
+  useLayoutEffect(() => { saver.update(JSON.parse(json)); }, [saver, json]);
   useEffect(() => {
-    const doc = {
-      nodes: visibleNodes.map((n) => ({
-        id: n.id, type: n.type, title: n.title, content: n.content,
-        tags: n.tags || [], color: n.color || 'cream',
-        x: posOf(n).x, y: posOf(n).y, w: n.w, h: n.h || 0,
-      })),
-      connections: edges.map(({ id, from, to, label }) => ({ id, from, to, label })),
-      groups: localGroups.map(({ id, name, x, y, w, h }) => ({ id, name, x, y, w, h })),
-      comments: allComments.map(({ id, nodeId, author, content, createdAt }) => ({ id, nodeId, author, content, createdAt })),
+    const warn = (event) => {
+      if (!saver.isDirty()) return;
+      event.preventDefault();
+      event.returnValue = '';
     };
-    const json = JSON.stringify(doc);
-    if (savedJson.current === null) { savedJson.current = json; return; }
-    if (savedJson.current === json) return;
-    const t = setTimeout(() => {
-      api.put(`/api/boards/${board.id}/state`, doc)
-        .then(() => { savedJson.current = json; })
-        .catch(() => {});
-    }, 700);
-    return () => clearTimeout(t);
-  });
+    const saveWhenHidden = () => {
+      if (document.visibilityState === 'hidden') saver.flush().catch(() => {});
+    };
+    window.addEventListener('beforeunload', warn);
+    document.addEventListener('visibilitychange', saveWhenHidden);
+    return () => {
+      window.removeEventListener('beforeunload', warn);
+      document.removeEventListener('visibilitychange', saveWhenHidden);
+    };
+  }, [saver]);
 
   const onToolClick = (id) => {
     if (id === 'branch') {
@@ -292,16 +315,24 @@ export default function BoardView({ app }) {
         <div className="board-title">
           <span className="brand-pin sm" />
           <h1>{board.title}</h1>
+          <button className="btn ghost sm" aria-label="Edit board details" onClick={() => openBoardDetails(board, setBoard)}>Edit details</button>
           <span className="kind-badge">{kind.icon} {kind.name}</span>
           <span className={`vis static ${board.isPublic ? 'pub' : ''}`}>{board.isPublic ? '◉ public' : '◌ private'}</span>
         </div>
         <div className="board-actions">
+          <span className={`save-status ${saveStatus.state}`} role="status" title={saveStatus.error}>
+            {{ saved: 'Saved to database', unsaved: 'Unsaved changes', saving: 'Saving...', error: 'Save failed' }[saveStatus.state]}
+          </span>
+          <button className="btn outline sm" disabled={saveStatus.state === 'saving'} onClick={() => saver.flush().catch(() => {})}>
+            {saveStatus.state === 'error' ? 'Retry save' : 'Save board'}
+          </button>
           <div className="board-searchbar"><span>⌕</span><input value={boardQuery} onChange={(e) => setBoardQuery(e.target.value)} placeholder="Search nodes… (FR-43)" /></div>
           <span className="cam-readout">{Math.round(cam.zoom * 100)}%</span>
           <button className="btn solid sm" onClick={() => openShareModal(board)}>Share</button>
         </div>
       </header>
 
+      {saveStatus.error && <p className="save-error" role="alert">{saveStatus.error} Your edits are still open here; retry saving before leaving.</p>}
       <div className="board-body-row">
         <aside className="tool-rail" aria-label="Tools">
           {TOOLS.map((t) => (

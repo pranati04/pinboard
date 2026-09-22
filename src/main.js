@@ -1,8 +1,8 @@
 import { state, subscribe, init } from './store/appStore.js';
 import { initLanding } from './views/landing.js';
 import { renderAuth } from './views/auth.js';
-import { renderDashboard } from './views/dashboard.js';
-import { mountBoard } from './board.jsx';
+import { renderDashboard, renderProfile } from './views/dashboard.js';
+import { mountBoard, closeBoard } from './board.jsx';
 
 const views = {
   landing: document.getElementById('view-landing'),
@@ -16,12 +16,16 @@ const hide = (el) => { el.style.display = 'none'; };
 
 function render() {
   const name = state.view.name || 'landing';
+  if (name !== 'board') closeBoard();
   Object.values(views).forEach(hide);
   window.scrollTo(0, 0);
 
   if (name === 'login' || name === 'register') {
     renderAuth(views.auth, name);
     show(views.auth);
+  } else if (name === 'profile') {
+    renderProfile(views.dashboard);
+    show(views.dashboard);
   } else if (name === 'dashboard') {
     renderDashboard(views.dashboard);
     show(views.dashboard);
