@@ -21,7 +21,7 @@ const BG = {
 const MIN_Z = 0.25;
 const MAX_Z = 2;
 
-export default function BoardCanvas({ board, nodes, connections, nodeMap, groups, cam, setCam, posOf, moveNode, resizeNode, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge, onEditLabel, onPlaceNode, onDrawGroup, dimIds, frameless, palette, onShuffle, moodCount, thoughtMode, rootId, onArrange, mapCount }) {
+export default function BoardCanvas({ board, nodes, connections, nodeMap, groups, cam, setCam, posOf, moveNode, resizeNode, moveGroup, resizeGroup, selectedId, onSelect, activeTool, connectFrom, onNodeClick, onDeleteEdge, onEditLabel, onPlaceNode, onDrawGroup, onDeleteGroup, dimIds, frameless, palette, onShuffle, moodCount, thoughtMode, rootId, onArrange, mapCount }) {
   const viewRef = useRef(null);
   const dragRef = useRef(null);
   const [draft, setDraft] = useState(null);
@@ -98,6 +98,22 @@ export default function BoardCanvas({ board, nodes, connections, nodeMap, groups
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
+  const onGroupResizeDown = (e, group) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    dragRef.current = { kind: 'group-resize', id: group.id, sx: e.clientX, sy: e.clientY, w: group.w, h: group.h };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onGroupMoveDown = (e, group) => {
+    if (e.button !== 0 || activeTool !== 'select') return;
+    e.stopPropagation();
+    const w = toWorld(e.clientX, e.clientY);
+    dragRef.current = { kind: 'group-move', id: group.id, dx: w.x - group.x, dy: w.y - group.y };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
   const onMove = (e) => {
     const d = dragRef.current;
     if (!d) return;
@@ -110,6 +126,13 @@ export default function BoardCanvas({ board, nodes, connections, nodeMap, groups
       const dw = (e.clientX - d.sx) / cam.zoom;
       const dh = (e.clientY - d.sy) / cam.zoom;
       resizeNode(d.id, Math.max(170, Math.round(d.w + dw)), Math.max(0, Math.round(d.h + dh)));
+    } else if (d.kind === 'group-resize') {
+      const dw = (e.clientX - d.sx) / cam.zoom;
+      const dh = (e.clientY - d.sy) / cam.zoom;
+      resizeGroup?.(d.id, Math.max(120, Math.round(d.w + dw)), Math.max(80, Math.round(d.h + dh)));
+    } else if (d.kind === 'group-move') {
+      const w = toWorld(e.clientX, e.clientY);
+      moveGroup?.(d.id, Math.round(w.x - d.dx), Math.round(w.y - d.dy));
     } else if (d.kind === 'group') {
       const w = toWorld(e.clientX, e.clientY);
       setDraft({
@@ -162,7 +185,7 @@ export default function BoardCanvas({ board, nodes, connections, nodeMap, groups
         className="canvas-world"
         style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.zoom})` }}
       >
-        <GroupsLayer groups={groups || []} boardId={board.id} posOf={posOf} />
+        <GroupsLayer groups={groups || []} boardId={board.id} onMoveDown={onGroupMoveDown} onResizeDown={onGroupResizeDown} onDelete={onDeleteGroup} />
         {draft && <div className="group-box draft" style={{ left: draft.x, top: draft.y, width: draft.w, height: draft.h }} />}
         <ConnectionsLayer connections={connections} nodeMap={nodeMap} posOf={posOf} onDelete={onDeleteEdge} onEditLabel={onEditLabel} />
         {nodes.map((n) => {

@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 
-const cwd = fileURLToPath(new URL('../', import.meta.url));
+const cwd = fileURLToPath(new URL('../../', import.meta.url));
 const php = process.env.PHP_BINARY || (process.platform === 'win32' ? 'C:/xampp/php/php.exe' : 'php');
 const env = { ...process.env, DB_NAME: 'pinboard_test' };
 const phpRun = (code, args = [], overrides = {}) => execFileSync(php, ['-r', code, ...args], {

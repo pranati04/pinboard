@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createBoardSaver } from './boardSaver.js';
+import { createBoardSaver } from '../../src/store/boardSaver.js';
 
 const pause = () => new Promise((resolve) => setTimeout(resolve, 20));
 

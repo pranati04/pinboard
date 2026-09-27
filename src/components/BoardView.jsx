@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createBoardSaver } from '../store/boardSaver.js';
 import { registerBeforeLeave } from '../store/appStore.js';
 import BoardCanvas from './BoardCanvas.jsx';
@@ -63,6 +63,7 @@ export default function BoardView({ app }) {
   const isMood = kind.id === 'moodboard';
   const isMap = kind.id === 'thoughtmap';
   const TOOLS = isMood ? MOOD_TOOLS : isMap ? MAP_TOOLS : PIN_TOOLS;
+  const [baseNodes, setBaseNodes] = useState(() => Object.values(app.nodes).filter((n) => n.boardId === board.id));
   const [overrides, setOverrides] = useState({});
   const [panelTab, setPanelTab] = useState('edit');
   const [positions, setPositions] = useState(() =>
@@ -78,9 +79,9 @@ export default function BoardView({ app }) {
   const [localGroups, setLocalGroups] = useState(() => app.groups.filter((g) => g.boardId === board.id));
   const [connectFrom, setConnectFrom] = useState(null);
   const [pendingEdge, setPendingEdge] = useState(null);
+  const versionRef = useRef(board.version || 1);
 
-  const nodes = Object.values(app.nodes)
-    .filter((n) => n.boardId === board.id)
+  const nodes = baseNodes
     .map((n) => ({ ...n, ...(sizes[n.id] ? { w: sizes[n.id].w, h: sizes[n.id].h } : {}), ...(overrides[n.id] || {}) }));
   const selected = selectedId ? nodes.find((n) => n.id === selectedId) || null : null;
 
@@ -127,6 +128,8 @@ export default function BoardView({ app }) {
       setTool('select');
       setConnectFrom(null);
       setPendingEdge(null);
+      setGroupDialog(null);
+      setInputDialog(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -136,6 +139,8 @@ export default function BoardView({ app }) {
   const [allComments, setAllComments] = useState(() => app.comments.filter((c) => c.boardId === board.id));
   const [boardQuery, setBoardQuery] = useState('');
   const [activeTag, setActiveTag] = useState(null);
+  const [groupDialog, setGroupDialog] = useState(null);
+  const [inputDialog, setInputDialog] = useState(null);
 
   const allTags = useMemo(() => [...new Set(nodes.flatMap((n) => n.tags || []))], [nodes]);
 
@@ -156,6 +161,9 @@ export default function BoardView({ app }) {
   const posOf = (n) => positions[n.id] || { x: n.x, y: n.y };
   const moveNode = (id, x, y) => setPositions((p) => ({ ...p, [id]: { x, y } }));
   const resizeNode = (id, w, h) => setSizes((s) => ({ ...s, [id]: { w, h } }));
+  const moveGroup = (id, x, y) => setLocalGroups((groups) => groups.map((group) => group.id === id ? { ...group, x, y } : group));
+  const resizeGroup = (id, w, h) => setLocalGroups((groups) => groups.map((group) => group.id === id ? { ...group, w, h } : group));
+  const onDeleteGroup = (id) => setLocalGroups((groups) => groups.filter((group) => group.id !== id));
 
   const root = isMap ? findRoot(visibleNodes, edges) : null;
 
@@ -165,7 +173,7 @@ export default function BoardView({ app }) {
     const siblings = (kids.get(parent.id) || []).length;
     const spot = childSpot(parent, posOf, siblings, siblings + 1);
     const thought = { id: nid, boardId: board.id, type: 'text', title: 'New thought', content: 'Say it in one line, then branch again.', x: spot.x, y: spot.y, w: 250, h: 140, tags: [], color: 'cream' };
-    app.nodes[nid] = thought;
+    setBaseNodes((all) => [...all, thought]);
     setOverrides((o) => ({ ...o, [nid]: {} }));
     setPositions((p) => ({ ...p, [nid]: { x: spot.x, y: spot.y } }));
     setSizes((s) => ({ ...s, [nid]: { w: 250, h: 140 } }));
@@ -177,7 +185,7 @@ export default function BoardView({ app }) {
   const addFloatingThought = () => {
     const nid = `t-${Date.now()}`;
     const spot = { x: 480 + Math.round(Math.random() * 200 - 100), y: 420 + Math.round(Math.random() * 120) };
-    app.nodes[nid] = { id: nid, boardId: board.id, type: 'text', title: 'Floating thought', content: 'Not attached yet — drag it near the tree or branch from it.', x: spot.x, y: spot.y, w: 250, h: 140, tags: [], color: 'cream' };
+    setBaseNodes((all) => [...all, { id: nid, boardId: board.id, type: 'text', title: 'Floating thought', content: 'Not attached yet — drag it near the tree or branch from it.', x: spot.x, y: spot.y, w: 250, h: 140, tags: [], color: 'cream' }]);
     setOverrides((o) => ({ ...o, [nid]: {} }));
     setPositions((p) => ({ ...p, [nid]: spot }));
     setSizes((s) => ({ ...s, [nid]: { w: 250, h: 140 } }));
@@ -190,23 +198,14 @@ export default function BoardView({ app }) {
     setPositions((p) => ({ ...p, ...layout }));
   };
 
-  const placeNode = (type, pt) => {
+  const createPlacedNode = (type, pt, content) => {
     const d = { ...(NODE_DEFAULTS[type] || NODE_DEFAULTS.text) };
-    if (type === 'link') {
-      const url = window.prompt('Paste the link URL', 'https://');
-      if (url === null) { setTool('select'); return; }
-      const clean = url.trim();
-      d.content = clean && !/^https?:\/\//i.test(clean) ? `https://${clean}` : clean;
-      if (d.content) d.title = d.content.replace(/^https?:\/\//, '').split('/')[0] || 'Link';
-    }
-    if (type === 'image') {
-      const url = window.prompt('Paste the image URL', 'https://');
-      if (url !== null && url.trim()) d.content = url.trim();
-    }
+    if (content !== undefined) d.content = content;
+    if (type === 'link' && d.content) d.title = d.content.replace(/^https?:\/\//, '').split('/')[0] || 'Link';
     const nid = `n-${Date.now()}`;
     const h = d.h || 140;
     const spot = { x: Math.round(pt.x - d.w / 2), y: Math.round(pt.y - h / 2) };
-    app.nodes[nid] = { id: nid, boardId: board.id, type, title: d.title, content: d.content, x: spot.x, y: spot.y, w: d.w, h: d.h || 0, tags: [], color: d.color };
+    setBaseNodes((all) => [...all, { id: nid, boardId: board.id, type, title: d.title, content: d.content, x: spot.x, y: spot.y, w: d.w, h: d.h || 0, tags: [], color: d.color }]);
     setOverrides((o) => ({ ...o, [nid]: {} }));
     setPositions((p) => ({ ...p, [nid]: spot }));
     setSizes((s) => ({ ...s, [nid]: { w: d.w, h: d.h || 0 } }));
@@ -216,11 +215,36 @@ export default function BoardView({ app }) {
   };
 
   const onDrawGroup = (rect) => {
-    const name = window.prompt('Name this group', 'Group');
-    if (name !== null) {
-      setLocalGroups((gs) => [...gs, { id: `g-${Date.now()}`, boardId: board.id, name: name.trim() || 'Group', ...rect }]);
-    }
+    setGroupDialog({ rect, name: 'Group' });
     setTool('select');
+  };
+
+  const placeNode = (type, pt) => {
+    if (type === 'link' || type === 'image') {
+      setInputDialog({ type, pt, value: 'https://' });
+      setTool('select');
+      return;
+    }
+    createPlacedNode(type, pt);
+  };
+
+  const confirmInput = (event) => {
+    event.preventDefault();
+    const value = inputDialog.value.trim();
+    if (!value) return;
+    const content = inputDialog.type === 'link' && !/^https?:\/\//i.test(value) ? `https://${value}` : value;
+    createPlacedNode(inputDialog.type, inputDialog.pt, content);
+    setInputDialog(null);
+  };
+
+  const confirmGroup = (event) => {
+    event.preventDefault();
+    const name = groupDialog.name.trim();
+    if (!name) return;
+    setLocalGroups((groups) => [...groups, {
+      id: `g-${Date.now()}`, boardId: board.id, name, ...groupDialog.rect,
+    }]);
+    setGroupDialog(null);
   };
 
   // Persist the whole board document, debounced — fires after any change
@@ -241,7 +265,14 @@ export default function BoardView({ app }) {
   const [saveStatus, setSaveStatus] = useState({ state: 'saved', error: '' });
   const [saver] = useState(() => createBoardSaver({
     initial: doc,
-    save: (snapshot) => api.put(`/api/boards/${encodeURIComponent(board.id)}/state`, snapshot),
+    save: async (snapshot) => {
+      const result = await api.put(`/api/boards/${encodeURIComponent(board.id)}/state`, {
+        ...snapshot,
+        version: versionRef.current,
+      });
+      if (Number.isInteger(result?.version)) versionRef.current = result.version;
+      return result;
+    },
   }));
   useLayoutEffect(() => {
     const unsubscribe = saver.subscribe(setSaveStatus);
@@ -277,7 +308,7 @@ export default function BoardView({ app }) {
     if (id === 'image' && isMood) {
       const nid = `m-${Date.now()}`;
       const spot = { x: 300 + Math.round(Math.random() * 300), y: 200 + Math.round(Math.random() * 200) };
-      app.nodes[nid] = { id: nid, boardId: board.id, type: 'image', title: 'New reference', content: 'https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=600&q=60', x: spot.x, y: spot.y, w: 260, h: 0, tags: ['new'], color: 'cream' };
+      setBaseNodes((all) => [...all, { id: nid, boardId: board.id, type: 'image', title: 'New reference', content: 'https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=600&q=60', x: spot.x, y: spot.y, w: 260, h: 0, tags: ['new'], color: 'cream' }]);
       setOverrides((o) => ({ ...o, [nid]: {} }));
       setPositions((p) => ({ ...p, [nid]: spot }));
       setSizes((s) => ({ ...s, [nid]: { w: 260, h: 0 } }));
@@ -288,7 +319,7 @@ export default function BoardView({ app }) {
       const nid = `s-${Date.now()}`;
       const hex = ['#c98a2e', '#c4746a', '#7d8b6f', '#6f93a8'][visibleNodes.length % 4];
       const spot = { x: 350 + Math.round(Math.random() * 250), y: 450 + Math.round(Math.random() * 100) };
-      app.nodes[nid] = { id: nid, boardId: board.id, type: 'swatch', title: 'Swatch', content: hex, x: spot.x, y: spot.y, w: 170, h: 0, tags: [], color: 'cream' };
+      setBaseNodes((all) => [...all, { id: nid, boardId: board.id, type: 'swatch', title: 'Swatch', content: hex, x: spot.x, y: spot.y, w: 170, h: 0, tags: [], color: 'cream' }]);
       setOverrides((o) => ({ ...o, [nid]: {} }));
       setPositions((p) => ({ ...p, [nid]: spot }));
       setSizes((s) => ({ ...s, [nid]: { w: 170, h: 0 } }));
@@ -298,7 +329,7 @@ export default function BoardView({ app }) {
     if (id === 'text' && isMood) {
       const nid = `m-${Date.now()}`;
       const spot = { x: 300 + Math.round(Math.random() * 300), y: 250 + Math.round(Math.random() * 200) };
-      app.nodes[nid] = { id: nid, boardId: board.id, type: 'text', title: '', content: 'a quiet note in handwriting…', x: spot.x, y: spot.y, w: 260, h: 0, tags: [], color: 'cream' };
+      setBaseNodes((all) => [...all, { id: nid, boardId: board.id, type: 'text', title: '', content: 'a quiet note in handwriting…', x: spot.x, y: spot.y, w: 260, h: 0, tags: [], color: 'cream' }]);
       setOverrides((o) => ({ ...o, [nid]: {} }));
       setPositions((p) => ({ ...p, [nid]: spot }));
       setSizes((s) => ({ ...s, [nid]: { w: 260, h: 0 } }));
@@ -333,6 +364,61 @@ export default function BoardView({ app }) {
       </header>
 
       {saveStatus.error && <p className="save-error" role="alert">{saveStatus.error} Your edits are still open here; retry saving before leaving.</p>}
+      {groupDialog && (
+        <div className="modal-veil" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setGroupDialog(null); }}>
+          <form className="modal group-dialog" onSubmit={confirmGroup} onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <p className="eyebrow">New group</p>
+                <h2>Name this group</h2>
+              </div>
+              <button className="btn ghost sm" type="button" aria-label="Close" onClick={() => setGroupDialog(null)}>✕</button>
+            </div>
+            <label className="editor-field" htmlFor="group-name">Group name</label>
+            <input
+              id="group-name"
+              className="group-name-input"
+              value={groupDialog.name}
+              onChange={(event) => setGroupDialog((current) => ({ ...current, name: event.target.value }))}
+              maxLength={80}
+              autoFocus
+              required
+            />
+            <div className="group-dialog-actions">
+              <button className="btn outline" type="button" onClick={() => setGroupDialog(null)}>Cancel</button>
+              <button className="btn solid" type="submit">Create group</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {inputDialog && (
+        <div className="modal-veil" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setInputDialog(null); }}>
+          <form className="modal group-dialog" onSubmit={confirmInput} onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <p className="eyebrow">New {inputDialog.type}</p>
+                <h2>{inputDialog.type === 'link' ? 'Add a link' : 'Add an image'}</h2>
+              </div>
+              <button className="btn ghost sm" type="button" aria-label="Close" onClick={() => setInputDialog(null)}>✕</button>
+            </div>
+            <label className="editor-field" htmlFor="node-source">{inputDialog.type === 'link' ? 'Link URL' : 'Image URL'}</label>
+            <input
+              id="node-source"
+              className="group-name-input"
+              type="url"
+              value={inputDialog.value}
+              onChange={(event) => setInputDialog((current) => ({ ...current, value: event.target.value }))}
+              placeholder="https://"
+              autoFocus
+              required
+            />
+            <div className="group-dialog-actions">
+              <button className="btn outline" type="button" onClick={() => setInputDialog(null)}>Cancel</button>
+              <button className="btn solid" type="submit">Add {inputDialog.type}</button>
+            </div>
+          </form>
+        </div>
+      )}
       <div className="board-body-row">
         <aside className="tool-rail" aria-label="Tools">
           {TOOLS.map((t) => (
@@ -351,12 +437,13 @@ export default function BoardView({ app }) {
           </div>
           <BoardCanvas
             board={board} nodes={visibleNodes} connections={edges} nodeMap={visibleNodeMap} groups={localGroups}
-            cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode} resizeNode={resizeNode}
+            cam={cam} setCam={setCam} posOf={posOf} moveNode={moveNode} resizeNode={resizeNode} moveGroup={moveGroup} resizeGroup={resizeGroup}
             selectedId={selectedId} onSelect={(id) => { setSelectedId(id); if (id) setPanelTab('edit'); }} activeTool={tool}
             connectFrom={connectFrom} onNodeClick={onNodeClick} onDeleteEdge={deleteEdge}
             onEditLabel={(c) => setPendingEdge({ id: c.id, from: c.from, to: c.to, label: c.label || '' })}
             onPlaceNode={placeNode}
             onDrawGroup={onDrawGroup}
+            onDeleteGroup={onDeleteGroup}
             dimIds={dimIds} frameless={isMood} palette={palette}
             onShuffle={doShuffle} moodCount={visibleNodes.length}
             thoughtMode={isMap} rootId={root?.id} onArrange={doArrange} mapCount={visibleNodes.length}
@@ -431,7 +518,7 @@ export default function BoardView({ app }) {
                     setOverrides((o) => ({ ...o, [nid]: {} }));
                     setPositions((pp) => ({ ...pp, [nid]: { x: p.x + 32, y: p.y + 32 } }));
                     setSizes((s) => ({ ...s, [nid]: { w: src.w, h: src.h || 0 } }));
-                    app.nodes[nid] = { ...src, id: nid, title: src.title + ' (copy)' };
+                    setBaseNodes((all) => [...all, { ...src, id: nid, title: src.title + ' (copy)' }]);
                     setSelectedId(nid);
                   }}
                 />

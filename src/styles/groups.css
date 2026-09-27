@@ -1,12 +1,30 @@
 .group-box {
   position: absolute; border: 2px dashed rgba(43,33,24,.4); border-radius: 16px;
-  background: rgba(255,253,247,.12); z-index: 1; pointer-events: auto;
+  background: rgba(255,253,247,.12); z-index: 1; pointer-events: auto; cursor: grab;
 }
+.group-box:active { cursor: grabbing; }
 .group-box.draft { border-color: var(--brass-bright); background: rgba(224,179,78,.14); }
 .group-label {
   position: absolute; top: -13px; left: 14px; font-size: 12px; font-weight: 800;
-  background: var(--walnut); color: var(--cream); border-radius: 999px; padding: 3px 12px;
+  display: inline-flex; align-items: center; gap: 6px; background: var(--walnut); color: var(--cream); border-radius: 999px; padding: 3px 5px 3px 12px;
 }
+.group-delete { border: 0; border-radius: 50%; width: 18px; height: 18px; padding: 0; background: transparent; color: var(--cream); font-size: 16px; line-height: 1; opacity: .7; }
+.group-delete:hover, .group-delete:focus-visible { opacity: 1; background: rgba(255,255,255,.18); }
+.group-box:hover { border-color: var(--brass); }
+.group-resize-handle {
+  position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px;
+  border: 2px solid var(--cream); border-radius: 4px; background: var(--brass);
+  cursor: nwse-resize; padding: 0; opacity: 0; transition: opacity .15s ease;
+}
+.group-box:hover .group-resize-handle, .group-resize-handle:focus-visible { opacity: 1; }
+.group-dialog { width: 420px; }
+.group-name-input {
+  display: block; width: 100%; margin-top: 8px; padding: 11px 13px;
+  border: 1.5px solid var(--line); border-radius: 10px; background: var(--cream);
+  color: var(--ink); font-size: 15px;
+}
+.group-name-input:focus { outline: none; border-color: var(--brass); box-shadow: 0 0 0 3px rgba(185,138,47,.18); }
+.group-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
 .board-searchbar {
   display: flex; align-items: center; gap: 8px; background: var(--cream);
   border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 14px; width: 250px;

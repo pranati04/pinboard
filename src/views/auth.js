@@ -68,7 +68,7 @@ export function renderAuth(el, mode) {
 
     const fail = (msg) => { errorEl.textContent = msg; errorEl.hidden = false; };
     if (!email.includes('@')) return fail('Please enter a valid email address (FR-02).');
-    if (password.length < 6) return fail('Password must be at least 6 characters.');
+    if (password.length < 8 || password.length > 72) return fail('Password must be between 8 and 72 characters.');
     if (isRegister && !name) return fail('Please tell us your name.');
 
     const btn = form.querySelector('.auth-submit');

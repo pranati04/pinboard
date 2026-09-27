@@ -19,6 +19,7 @@ async function req(method, path, body) {
     res = await fetch(path, {
       method,
       cache: 'no-store',
+      credentials: 'include',
       ...(timeout ? { signal: timeout.signal } : {}),
       headers: {
         'Content-Type': 'application/json',

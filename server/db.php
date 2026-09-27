@@ -125,6 +125,7 @@ function row_to_board(array $r): array {
         'id' => $r['id'], 'kind' => $r['kind'], 'title' => $r['title'],
         'description' => $r['description'], 'isPublic' => (bool) $r['is_public'],
         'background' => $r['background'], 'updatedAt' => (int) $r['updated_at'],
+        'version' => (int) ($r['version'] ?? 1), 'userId' => $r['user_id'],
     ];
 }
 
@@ -138,6 +139,17 @@ function get_board(string $boardId, string $userId): ?array {
 function get_public_board(string $boardId): ?array {
     $st = pdo()->prepare('SELECT * FROM boards WHERE id = ? AND is_public = 1');
     $st->execute([$boardId]);
+    $r = $st->fetch();
+    return $r ? row_to_board($r) : null;
+}
+
+function get_shared_board(string $boardId, string $userId, bool $write): ?array {
+    $st = pdo()->prepare(
+        'SELECT b.* FROM boards b JOIN shares s ON s.board_id = b.id
+         JOIN users u ON LOWER(u.email) = LOWER(s.email)
+         WHERE b.id = ? AND u.id = ? AND (? = 0 OR s.role = \'editor\')'
+    );
+    $st->execute([$boardId, $userId, $write ? 1 : 0]);
     $r = $st->fetch();
     return $r ? row_to_board($r) : null;
 }
@@ -234,7 +246,9 @@ function get_board_doc(string $boardId): array {
     ];
 }
 
-function save_board_state(string $boardId, string $userId, array $doc): void {
+final class BoardConflict extends RuntimeException {}
+
+function save_board_state(string $boardId, string $userId, array $doc, ?int $expectedVersion = null): int {
     $db = pdo();
     $db->beginTransaction();
     try {
@@ -251,8 +265,19 @@ function save_board_state(string $boardId, string $userId, array $doc): void {
         foreach ($doc['groups'] ?? [] as $g) $insGroup->execute([$g['id'], $boardId, $g['name'] ?? '', $g['x'] ?? 0, $g['y'] ?? 0, $g['w'] ?? 0, $g['h'] ?? 0]);
         $insComment = $db->prepare('INSERT INTO comments (id, board_id, node_id, author, content, created_at) VALUES (?, ?, ?, ?, ?, ?)');
         foreach ($doc['comments'] ?? [] as $c) $insComment->execute([$c['id'], $boardId, $c['nodeId'] ?? null, $c['author'] ?? '', $c['content'] ?? '', $c['createdAt'] ?? now_ms()]);
-        $db->prepare('UPDATE boards SET updated_at = ? WHERE id = ? AND user_id = ?')->execute([now_ms(), $boardId, $userId]);
+        if ($expectedVersion === null) {
+            $db->prepare('UPDATE boards SET updated_at = ? WHERE id = ? AND user_id = ?')->execute([now_ms(), $boardId, $userId]);
+            $current = $db->prepare('SELECT version FROM boards WHERE id = ? AND user_id = ?');
+            $current->execute([$boardId, $userId]);
+            $version = (int) $current->fetchColumn();
+        } else {
+            $update = $db->prepare('UPDATE boards SET updated_at = ?, version = version + 1 WHERE id = ? AND user_id = ? AND version = ?');
+            $update->execute([now_ms(), $boardId, $userId, $expectedVersion]);
+            if ($update->rowCount() !== 1) throw new BoardConflict('This board changed elsewhere. Reload it before saving your changes.');
+            $version = $expectedVersion + 1;
+        }
         $db->commit();
+        return $version;
     } catch (Throwable $e) { $db->rollBack(); throw $e; }
 }
 
