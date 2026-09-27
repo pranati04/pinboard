@@ -47,6 +47,8 @@ const MAP_TOOLS = [
 ];
 
 const PLACE_TOOLS = new Set(NODE_TYPES);
+const MEDIA_TYPES = new Set(['file', 'audio', 'video']);
+const MEDIA_ACCEPT = { file: '.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx', audio: 'audio/*', video: 'video/*' };
 
 const NODE_DEFAULTS = {
   text:  { title: 'Note',         content: 'Type your note here…', w: 260, h: 160, color: 'butter' },
@@ -198,9 +200,10 @@ export default function BoardView({ app }) {
     setPositions((p) => ({ ...p, ...layout }));
   };
 
-  const createPlacedNode = (type, pt, content) => {
+  const createPlacedNode = (type, pt, content, title) => {
     const d = { ...(NODE_DEFAULTS[type] || NODE_DEFAULTS.text) };
     if (content !== undefined) d.content = content;
+    if (title) d.title = title;
     if (type === 'link' && d.content) d.title = d.content.replace(/^https?:\/\//, '').split('/')[0] || 'Link';
     const nid = `n-${Date.now()}`;
     const h = d.h || 140;
@@ -220,20 +223,34 @@ export default function BoardView({ app }) {
   };
 
   const placeNode = (type, pt) => {
-    if (type === 'link' || type === 'image') {
-      setInputDialog({ type, pt, value: 'https://' });
+    if (type === 'link' || type === 'image' || MEDIA_TYPES.has(type)) {
+      setInputDialog({ type, pt, value: MEDIA_TYPES.has(type) ? '' : 'https://', file: null, busy: false, error: '' });
       setTool('select');
       return;
     }
     createPlacedNode(type, pt);
   };
 
-  const confirmInput = (event) => {
+  const confirmInput = async (event) => {
     event.preventDefault();
+    if (inputDialog.busy) return;
     const value = inputDialog.value.trim();
-    if (!value) return;
-    const content = inputDialog.type === 'link' && !/^https?:\/\//i.test(value) ? `https://${value}` : value;
-    createPlacedNode(inputDialog.type, inputDialog.pt, content);
+    if (!value && !inputDialog.file) return;
+    let content = value;
+    let title;
+    if (inputDialog.type === 'link' && content && !/^https?:\/\//i.test(content)) content = `https://${content}`;
+    if (inputDialog.file) {
+      setInputDialog((current) => ({ ...current, busy: true, error: '' }));
+      try {
+        const uploaded = await api.upload(inputDialog.file);
+        content = uploaded.url;
+        title = uploaded.name;
+      } catch (error) {
+        setInputDialog((current) => ({ ...current, busy: false, error: error.message }));
+        return;
+      }
+    }
+    createPlacedNode(inputDialog.type, inputDialog.pt, content, title);
     setInputDialog(null);
   };
 
@@ -397,24 +414,31 @@ export default function BoardView({ app }) {
             <div className="modal-head">
               <div>
                 <p className="eyebrow">New {inputDialog.type}</p>
-                <h2>{inputDialog.type === 'link' ? 'Add a link' : 'Add an image'}</h2>
+                <h2>{inputDialog.type === 'link' ? 'Add a link' : inputDialog.type === 'image' ? 'Add an image' : `Add ${inputDialog.type}`}</h2>
               </div>
               <button className="btn ghost sm" type="button" aria-label="Close" onClick={() => setInputDialog(null)}>✕</button>
             </div>
-            <label className="editor-field" htmlFor="node-source">{inputDialog.type === 'link' ? 'Link URL' : 'Image URL'}</label>
+            {MEDIA_TYPES.has(inputDialog.type) && (
+              <label className="upload-choice">
+                <span>Upload from your computer</span>
+                <input type="file" accept={MEDIA_ACCEPT[inputDialog.type]} onChange={(event) => setInputDialog((current) => ({ ...current, file: event.target.files?.[0] || null, value: '' }))} />
+              </label>
+            )}
+            <label className="editor-field" htmlFor="node-source">{MEDIA_TYPES.has(inputDialog.type) ? 'Or source URL' : inputDialog.type === 'link' ? 'Link URL' : 'Image URL'}</label>
             <input
               id="node-source"
               className="group-name-input"
               type="url"
               value={inputDialog.value}
               onChange={(event) => setInputDialog((current) => ({ ...current, value: event.target.value }))}
-              placeholder="https://"
+              placeholder={MEDIA_TYPES.has(inputDialog.type) ? 'https://example.com/file.mp4' : 'https://'}
               autoFocus
-              required
+              required={!MEDIA_TYPES.has(inputDialog.type) || !inputDialog.file}
             />
+            {inputDialog.error && <p className="input-dialog-error" role="alert">{inputDialog.error}</p>}
             <div className="group-dialog-actions">
               <button className="btn outline" type="button" onClick={() => setInputDialog(null)}>Cancel</button>
-              <button className="btn solid" type="submit">Add {inputDialog.type}</button>
+              <button className="btn solid" type="submit" disabled={inputDialog.busy}>{inputDialog.busy ? 'Uploading…' : `Add ${inputDialog.type}`}</button>
             </div>
           </form>
         </div>

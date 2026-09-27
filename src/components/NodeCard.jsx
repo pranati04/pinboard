@@ -116,8 +116,8 @@ function Content({ n }) {
     case 'video':
       return (
         <span className="node-video-ph" onPointerDown={(e) => e.stopPropagation()}>
-          <span className="node-play">▶</span>
-          <span className="node-video-meta">{n.content.split('/').pop()}</span>
+          {/^https?:\/\//i.test(n.content || '') ? <video className="node-media-control" src={n.content} controls preload="metadata" /> : <span className="node-play">▶</span>}
+          <span className="node-video-meta">{(n.content || '').split('/').pop()}</span>
         </span>
       );
     case 'file':
@@ -125,15 +125,15 @@ function Content({ n }) {
         <span className="node-filebox">
           <span className="node-file-icon">▤</span>
           <span>
-            <span className="node-file-name">{n.title}</span>
+            <a className="node-file-name" href={n.content} target="_blank" rel="noreferrer" download onPointerDown={(e) => e.stopPropagation()}>{n.title}</a>
             <span className="node-file-meta">{n.content}</span>
           </span>
         </span>
       );
     case 'audio':
       return (
-        <span className="node-audio" onPointerDown={(e) => e.stopPropagation()}>
-          <span className="node-play sm">♪</span>
+        <span className={`node-audio ${/^https?:\/\//i.test(n.content || '') ? 'has-player' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
+          {/^https?:\/\//i.test(n.content || '') ? <audio className="node-media-control" src={n.content} controls preload="metadata" /> : <span className="node-play sm">♪</span>}
           <span className="node-wave" aria-hidden="true">
             {[5, 9, 6, 12, 8, 4, 10, 7, 11, 5, 8, 6, 9, 5].map((h, i) => (
               <i key={i} style={{ height: h }} />

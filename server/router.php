@@ -10,6 +10,25 @@ if (str_starts_with($path, '/api/')) {
     return true;
 }
 
+if (str_starts_with($path, '/uploads/')) {
+    $relative = substr($path, strlen('/uploads/'));
+    if (!preg_match('#^[a-zA-Z0-9_-]+/[a-f0-9]{32}\.(pdf|txt|csv|doc|docx|xls|xlsx|ppt|pptx|mp3|wav|ogg|m4a|mp4|webm|mov)$#', $relative)) {
+        http_response_code(404);
+        return true;
+    }
+    $file = __DIR__ . '/uploads/' . $relative;
+    if (!is_file($file)) {
+        http_response_code(404);
+        return true;
+    }
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file) ?: 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($file));
+    header('X-Content-Type-Options: nosniff');
+    readfile($file);
+    return true;
+}
+
 // static file if it exists under the docroot
 $file = $_SERVER['DOCUMENT_ROOT'] . $path;
 if ($path !== '/' && is_file($file)) return false;

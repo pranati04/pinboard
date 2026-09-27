@@ -51,4 +51,18 @@ export const api = {
   put: (p, b) => req('PUT', p, b),
   patch: (p, b) => req('PATCH', p, b),
   del: (p) => req('DELETE', p),
+  async upload(file) {
+    const res = await fetch('/api/uploads', {
+      method: 'POST', credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: (() => { const form = new FormData(); form.append('file', file); return form; })(),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const error = new Error(data.error || `Upload failed (${res.status}).`);
+      error.status = res.status;
+      throw error;
+    }
+    return res.json();
+  },
 };

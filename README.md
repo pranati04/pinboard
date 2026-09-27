@@ -40,6 +40,8 @@ npm run dev
 
 Open <http://127.0.0.1:5173>. Vite serves the frontend and proxies `/api` requests to PHP on port `5174`.
 
+The frontend uses URL routes. Useful pages include `/`, `/login`, `/register`, `/dashboard`, `/profile`, and `/boards/<board-id>`. Refreshing a route works through the PHP SPA fallback.
+
 The npm scripts use `C:\xampp\php\php.exe`. If PHP is installed elsewhere, update the `server` and `start` scripts in `package.json`.
 
 ## Production-style local run

@@ -44,6 +44,31 @@ if ($token) {
     $user = guest_user();
 }
 
+if ($path === '/api/uploads' && $method === 'POST') {
+    if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) fail('Choose a file to upload.', 422);
+    $file = $_FILES['file'];
+    if ($file['size'] > 25 * 1024 * 1024) fail('Files must be 25 MB or smaller.', 422);
+    $allowed = [
+        'application/pdf' => 'pdf', 'text/plain' => 'txt', 'text/csv' => 'csv',
+        'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.ms-excel' => 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+        'application/vnd.ms-powerpoint' => 'ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+        'audio/mpeg' => 'mp3', 'audio/wav' => 'wav', 'audio/ogg' => 'ogg', 'audio/mp4' => 'm4a',
+        'video/mp4' => 'mp4', 'video/webm' => 'webm', 'video/quicktime' => 'mov',
+    ];
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    if (!isset($allowed[$mime])) fail('Unsupported file type. Use a document, audio, or video file.', 422);
+    $directory = __DIR__ . '/uploads/' . preg_replace('/[^a-zA-Z0-9_-]/', '', $user['id']);
+    if (!is_dir($directory) && !mkdir($directory, 0750, true)) fail('The upload directory could not be created.', 503);
+    $name = bin2hex(random_bytes(16)) . '.' . $allowed[$mime];
+    $target = $directory . '/' . $name;
+    if (!move_uploaded_file($file['tmp_name'], $target)) fail('The file could not be saved.', 503);
+    out(['url' => '/uploads/' . rawurlencode($user['id']) . '/' . $name, 'name' => basename($file['name']), 'size' => (int) $file['size'], 'mime' => $mime], 201);
+}
+
 // Owned board, or any public board for reads
 function board_for(string $id, string $userId, bool $write = false): ?array {
     $own = get_board($id, $userId);

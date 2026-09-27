@@ -1,7 +1,8 @@
 import { api } from '../api.js';
+import { pathForView, replaceViewUrl, viewForPath } from '../router.js';
 
 export const state = {
-  view: { name: 'landing' },
+  view: viewForPath(),
   user: null,
   ready: false,
   boards: [],
@@ -23,15 +24,29 @@ export function registerBeforeLeave(fn) {
   return () => { if (beforeLeave === fn) beforeLeave = null; };
 }
 
-export async function setView(view) {
+export async function setView(view, { replace = false } = {}) {
   try {
     if (state.view.name === 'board') await beforeLeave?.();
     state.view = view;
+    const path = pathForView(view);
+    if (replace) window.history.replaceState({}, '', path);
+    else if (window.location.pathname !== path) window.history.pushState({}, '', path);
     emit();
     return true;
   } catch (error) {
     window.alert(`Your board could not be saved. You are still on this board. ${error.message}`);
     return false;
+  }
+}
+
+export async function handlePopState() {
+  try {
+    if (state.view.name === 'board') await beforeLeave?.();
+    state.view = viewForPath();
+    emit();
+  } catch (error) {
+    replaceViewUrl(state.view);
+    window.alert(`Your board could not be saved. You are still on this board. ${error.message}`);
   }
 }
 export function setUser(user) {
@@ -67,6 +82,7 @@ export async function init() {
     if (error.status === 401) {
       api.setToken(null);
       state.view = { name: 'login' };
+      replaceViewUrl(state.view);
     }
   }
   state.ready = true;

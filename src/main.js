@@ -1,4 +1,4 @@
-import { state, subscribe, init } from './store/appStore.js';
+import { state, subscribe, init, handlePopState } from './store/appStore.js';
 import { initLanding } from './views/landing.js';
 import { renderAuth } from './views/auth.js';
 import { renderDashboard, renderProfile } from './views/dashboard.js';
@@ -39,5 +39,6 @@ function render() {
 
 initLanding();
 subscribe(render);
+window.addEventListener('popstate', handlePopState);
 render();
 init();

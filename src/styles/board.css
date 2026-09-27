@@ -55,6 +55,7 @@
   position: absolute; background: #fdf6e3; border-radius: 8px; padding: 14px 14px 10px;
   box-shadow: var(--card-shadow); font-size: 13px; cursor: grab;
   transform-origin: top left; user-select: none; touch-action: none;
+  box-sizing: border-box; min-width: 0; height: auto;
 }
 .node:active { cursor: grabbing; }
 .node.selected { outline: 2.5px solid var(--brass-bright); box-shadow: var(--lift-shadow); z-index: 5; }

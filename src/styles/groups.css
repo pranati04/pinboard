@@ -25,6 +25,9 @@
 }
 .group-name-input:focus { outline: none; border-color: var(--brass); box-shadow: 0 0 0 3px rgba(185,138,47,.18); }
 .group-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+.upload-choice { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; font-size: 13px; font-weight: 700; }
+.upload-choice input { width: 100%; padding: 10px; border: 1.5px dashed var(--line); border-radius: 10px; background: var(--cream); font: inherit; font-weight: 400; }
+.input-dialog-error { margin-top: 10px; color: #942c25; font-size: 13px; }
 .board-searchbar {
   display: flex; align-items: center; gap: 8px; background: var(--cream);
   border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 14px; width: 250px;
