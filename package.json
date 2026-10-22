@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "\"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 server/router.php",
+    "server": "\"C:\\xampp\\php\\php.exe\" -d display_errors=0 -d log_errors=1 -S 127.0.0.1:5174 server/router.php",
     "build": "vite build",
     "test": "node --test tests/unit/boardSaver.test.js tests/unit/router.test.js",
     "test:e2e": "npm run build && node --test tests/e2e/website.test.mjs",
     "preview": "vite preview",
-    "start": "npm run build && \"C:\\xampp\\php\\php.exe\" -S 127.0.0.1:5174 -t dist server/router.php"
+    "start": "npm run build && \"C:\\xampp\\php\\php.exe\" -d display_errors=0 -d log_errors=1 -S 127.0.0.1:5174 -t dist server/router.php"
   },
   "dependencies": {
     "react": "^18.3.1",

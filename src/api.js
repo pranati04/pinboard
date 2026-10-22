@@ -57,12 +57,24 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: (() => { const form = new FormData(); form.append('file', file); return form; })(),
     });
+    const raw = await res.text();
+    let data = null;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      // PHP can prepend a startup notice before the JSON response. Keep the
+      // upload usable while the server configuration is being corrected.
+      const jsonStart = raw.indexOf('{');
+      if (jsonStart >= 0) {
+        try { data = JSON.parse(raw.slice(jsonStart)); } catch { /* use fallback */ }
+      }
+    }
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      const error = new Error(data.error || `Upload failed (${res.status}).`);
+      const error = new Error(data?.error || `Upload failed (${res.status}).`);
       error.status = res.status;
       throw error;
     }
-    return res.json();
+    if (!data) throw new Error('The upload server returned an invalid response. Restart the PHP server and try again.');
+    return data;
   },
 };
