@@ -1,4 +1,23 @@
+import { useState } from 'react';
+
 const hash = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
+const isMediaSource = (url) => /^https?:\/\//i.test(url || '') || /^\/uploads\//i.test(url || '');
+
+function videoEmbedUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.hostname === 'youtu.be') return `https://www.youtube.com/embed/${url.pathname.slice(1)}`;
+    if (url.hostname.endsWith('youtube.com')) {
+      const id = url.searchParams.get('v') || url.pathname.match(/\/(?:shorts|embed)\/([^/]+)/)?.[1];
+      return id ? `https://www.youtube.com/embed/${id}` : '';
+    }
+    if (url.hostname.endsWith('vimeo.com')) {
+      const id = url.pathname.match(/\/(\d+)/)?.[1];
+      return id ? `https://player.vimeo.com/video/${id}` : '';
+    }
+  } catch { /* not a URL; the media element will handle local paths */ }
+  return '';
+}
 
 export default function NodeCard({ n, selected, onDragDown, onResizeDown, frameless, thought, isRoot, depth }) {
   if (thought) {
@@ -114,12 +133,7 @@ function Content({ n }) {
       );
     }
     case 'video':
-      return (
-        <span className="node-video-ph" onPointerDown={(e) => e.stopPropagation()}>
-          {/^https?:\/\//i.test(n.content || '') ? <video className="node-media-control" src={n.content} controls preload="metadata" /> : <span className="node-play">▶</span>}
-          <span className="node-video-meta">{(n.content || '').split('/').pop()}</span>
-        </span>
-      );
+      return <VideoContent value={n.content} />;
     case 'file':
       return (
         <span className="node-filebox">
@@ -132,8 +146,8 @@ function Content({ n }) {
       );
     case 'audio':
       return (
-        <span className={`node-audio ${/^https?:\/\//i.test(n.content || '') ? 'has-player' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
-          {/^https?:\/\//i.test(n.content || '') ? <audio className="node-media-control" src={n.content} controls preload="metadata" /> : <span className="node-play sm">♪</span>}
+        <span className={`node-audio ${isMediaSource(n.content) ? 'has-player' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
+          {isMediaSource(n.content) ? <audio className="node-media-control" src={n.content} controls preload="metadata" /> : <span className="node-play sm">♪</span>}
           <span className="node-wave" aria-hidden="true">
             {[5, 9, 6, 12, 8, 4, 10, 7, 11, 5, 8, 6, 9, 5].map((h, i) => (
               <i key={i} style={{ height: h }} />
@@ -145,4 +159,23 @@ function Content({ n }) {
     default:
       return <p className="node-text">{n.content}</p>;
   }
+}
+
+function VideoContent({ value }) {
+  const [failed, setFailed] = useState(false);
+  const url = (value || '').trim();
+  const embed = videoEmbedUrl(url);
+  const label = url.split('/').pop() || 'Video source';
+  return (
+    <span className="node-video-ph" onPointerDown={(e) => e.stopPropagation()}>
+      {embed ? (
+        <iframe className="node-embed" src={embed} title={label} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+      ) : isMediaSource(url) && !failed ? (
+        <video className="node-media-control" src={url} controls preload="metadata" onError={() => setFailed(true)} />
+      ) : (
+        <a className="node-video-link" href={url || '#'} target="_blank" rel="noreferrer">▶ Open video source</a>
+      )}
+      <span className="node-video-meta">{label}</span>
+    </span>
+  );
 }

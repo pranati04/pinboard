@@ -19,6 +19,10 @@ set_exception_handler(function (Throwable $e): void {
     http_response_code(503);
     echo json_encode(['error' => $message]);
 });
+set_error_handler(function (int $severity, string $message, string $file, int $line): never {
+    if (!(error_reporting() & $severity)) throw new ErrorException($message, 0, $severity, $file, $line);
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
 
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -47,7 +51,9 @@ if ($token) {
 if ($path === '/api/uploads' && $method === 'POST') {
     if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) fail('Choose a file to upload.', 422);
     $file = $_FILES['file'];
+    if (!is_uploaded_file($file['tmp_name'])) fail('The uploaded file was not received correctly. Try again.', 422);
     if ($file['size'] > 25 * 1024 * 1024) fail('Files must be 25 MB or smaller.', 422);
+    if (!class_exists('finfo')) fail('PHP Fileinfo is required for uploads. Enable the fileinfo extension in XAMPP.', 503);
     $allowed = [
         'application/pdf' => 'pdf', 'text/plain' => 'txt', 'text/csv' => 'csv',
         'application/msword' => 'doc',
@@ -62,7 +68,7 @@ if ($path === '/api/uploads' && $method === 'POST') {
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
     if (!isset($allowed[$mime])) fail('Unsupported file type. Use a document, audio, or video file.', 422);
     $directory = __DIR__ . '/uploads/' . preg_replace('/[^a-zA-Z0-9_-]/', '', $user['id']);
-    if (!is_dir($directory) && !mkdir($directory, 0750, true)) fail('The upload directory could not be created.', 503);
+    if (!is_dir($directory) && !@mkdir($directory, 0750, true) && !is_dir($directory)) fail('The upload directory could not be created.', 503);
     $name = bin2hex(random_bytes(16)) . '.' . $allowed[$mime];
     $target = $directory . '/' . $name;
     if (!move_uploaded_file($file['tmp_name'], $target)) fail('The file could not be saved.', 503);
