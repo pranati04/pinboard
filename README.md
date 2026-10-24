@@ -88,14 +88,7 @@ Open the XAMPP Control Panel and start **MySQL**. Apache is not required for the
 
 ### 4. Create and initialise the database
 
-The complete table definition is in [`server/schema.sql`](server/schema.sql). Create a database named `pinboard`, then import the schema using the [SQL scripts](#sql-scripts) below or phpMyAdmin.
-
-Using the MySQL client:
-
-```powershell
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS pinboard CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p pinboard < server/schema.sql
-```
+The complete table definition is in [`server/schema.sql`](server/schema.sql). Create and initialise the database using the dedicated [`SQL_SCRIPTS.md`](SQL_SCRIPTS.md) document or phpMyAdmin.
 
 Using phpMyAdmin:
 
@@ -241,85 +234,6 @@ shares         board-level access roles
 ```
 
 The schema keeps parent facts in `boards` and stores repeating child facts in separate relations. Foreign keys maintain board ownership and connection endpoints. Composite keys keep node, group, connection and comment records scoped to their board. [`server/db.php`](server/db.php) uses PDO prepared statements for database access.
-
-## SQL scripts
-
-The following scripts assume MySQL or MariaDB and the default database name `pinboard`.
-
-### 1. Database creation
-
-Run this once as a MySQL administrator:
-
-```sql
-CREATE DATABASE IF NOT EXISTS pinboard
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE pinboard;
-```
-
-### 2. Table creation
-
-The authoritative table-creation script is [`server/schema.sql`](server/schema.sql). After creating the database, import it with:
-
-```powershell
-mysql -u root -p pinboard < server/schema.sql
-```
-
-It creates `users`, `sessions`, `boards`, `nodes`, `connections`, `board_groups`, `comments` and `shares`, including their primary keys, indexes, foreign keys and cascading delete rules. Use `server/schema.sql` as the source of truth rather than copying an abbreviated definition into another file.
-
-### 3. Sample data insertion
-
-After importing the schema, run this optional seed data. It creates one demo account, one board, two nodes, one group, one connection, one comment and one share.
-
-Demo login:
-
-```text
-Email:    demo@example.com
-Password: DemoPass123!
-```
-
-```sql
-USE pinboard;
-
-INSERT IGNORE INTO users (id, name, email, pass_hash, created_at)
-VALUES ('user-demo-001', 'Demo User', 'demo@example.com',
-        '$2y$10$Ea/V/Wp8R1gCl/nPA8j0sOs5G4oFisJOemhgKetLQce2THxkDW2Wq',
-        1710000000000);
-
-INSERT IGNORE INTO boards
-  (id, user_id, kind, title, description, is_public, background, updated_at, version)
-VALUES ('board-demo-001', 'user-demo-001', 'pinboard', 'Demo Research Board',
-        'Seed board for local development and demonstrations.', 0, 'cork',
-        1710000000000, 1);
-
-INSERT IGNORE INTO nodes
-  (id, board_id, type, title, content, x, y, w, h, tags, color)
-VALUES
-  ('node-demo-001', 'board-demo-001', 'text', 'Project question',
-   'How can spatial organisation preserve relationships between project references?',
-   120, 120, 280, 160, '["research","question"]', 'cream'),
-  ('node-demo-002', 'board-demo-001', 'link', 'Reference source',
-   'https://example.com/reference', 520, 180, 300, 150,
-   '["source"]', 'blue');
-
-INSERT IGNORE INTO board_groups (id, board_id, name, x, y, w, h)
-VALUES ('group-demo-001', 'board-demo-001', 'Initial research', 80, 80, 820, 360);
-
-INSERT IGNORE INTO connections (id, board_id, from_id, to_id, label)
-VALUES ('connection-demo-001', 'board-demo-001', 'node-demo-001',
-        'node-demo-002', 'supported by');
-
-INSERT IGNORE INTO comments (id, board_id, node_id, author, content, created_at)
-VALUES ('comment-demo-001', 'board-demo-001', 'node-demo-001', 'Demo User',
-        'This question defines the scope for the first research pass.',
-        1710000000000);
-
-INSERT IGNORE INTO shares (board_id, email, role)
-VALUES ('board-demo-001', 'reviewer@example.com', 'viewer');
-```
-
-`INSERT IGNORE` makes the seed script safe to run again with the same identifiers. It is intended for local demonstrations, not production data loading.
 
 ## Testing
 
