@@ -1,51 +1,113 @@
 # Corkboard
 
-Corkboard is a visual collaboration workspace for organizing research, project ideas and mixed-media references. Users can create boards containing notes, images, links, documents, audio, video, groups, connections, comments and tags.
+Corkboard is a browser-based visual knowledge workspace for organising research, project ideas and mixed-media references on persistent boards. A board can contain notes, links, images, documents, audio, video, groups, labelled connections, comments and access rules.
 
-## Stack
-
-- Vite, JavaScript, React and CSS frontend
-- PHP JSON API
-- MySQL database with PDO
-- XAMPP for local PHP and MySQL
-- Node test runner and Playwright for testing
+The project treats a board as one coherent domain object. The frontend gives immediate visual feedback while users move, resize and edit content. The PHP API validates the board state, checks permissions and persists the related records in MySQL.
 
 ```text
-Browser -> Vite/React -> PHP JSON API -> MySQL
-                                      -> local uploads
+Browser -> Vite + React frontend -> PHP JSON API -> MySQL
+                                                   -> local uploads
 ```
 
-## Features
+## Main capabilities
 
-- Pinboard, moodboard and thought-map board types
-- Text, image, link, file, audio and video nodes
-- Dragging, zooming, resizing and automatic content sizing
-- Groups, labelled connections, comments, tags and search
-- Public/private boards and viewer/editor sharing
-- File uploads up to 25 MB or external source URLs
-- Automatic saving, retry handling and optimistic versioning
-- Prepared SQL statements, validation and foreign-key constraints
+- Create pinboard, moodboard and thought-map workspaces.
+- Add text, image, link, document, audio and video content.
+- Upload supported files or attach an external source URL.
+- Drag, resize, zoom and automatically size nodes to their content.
+- Organise nodes into groups and connect them with labelled relationships.
+- Add comments, tags and board-level sharing permissions.
+- Save board state automatically with retry handling.
+- Detect stale writes with optimistic versioning instead of silently overwriting newer data.
+- Protect data with PHP validation, prepared SQL statements, sessions and foreign-key constraints.
 
-## Requirements
+## Technology and project structure
 
-- Node.js 18 or newer
-- XAMPP with PHP 8.2+ and MySQL
-- PHP `fileinfo` extension for upload MIME detection
-- Playwright browser runtime for end-to-end tests
+The project uses React and Vite for the browser application, PHP for the JSON API, MySQL for relational persistence and XAMPP for local PHP/MySQL services.
 
-The npm scripts expect PHP at `C:\xampp\php\php.exe`. If PHP is elsewhere, update the `server` and `start` scripts in [`package.json`](package.json).
+```text
+src/
+  api.js                 API requests and uploads
+  main.js                frontend entry point
+  router.js              client-side route handling
+  board.jsx              board application mount
+  components/            board, nodes, groups, connections and editors
+  data/                  board types and seed configuration
+  store/                 application state and autosave logic
+  styles/                feature-specific CSS
+  views/                 landing, authentication, dashboard and profile views
 
-## First-time setup
+server/
+  config.php             database and CORS configuration
+  db.php                 PDO connection and database operations
+  http.php               JSON, request and session helpers
+  index.php              PHP JSON API controller
+  router.php             PHP front controller and SPA fallback
+  schema.sql             MySQL table-creation script
+  validation.php         board-document validation
+  uploads/               runtime file uploads, ignored by Git
 
-Install dependencies from the repository root:
+tests/
+  unit/                  Node unit tests
+  e2e/                   Playwright browser/API test
+
+package.json             npm scripts and dependencies
+vite.config.js           Vite configuration and API proxy
+index.html               frontend HTML entry point
+```
+
+## Prerequisites
+
+- Node.js 18 or newer and npm.
+- XAMPP with PHP 8.2 or newer and MySQL/MariaDB.
+- PHP `fileinfo` extension for uploaded-file MIME detection.
+- A modern browser such as Chrome or Edge.
+- Playwright browsers only if you want to run end-to-end tests.
+
+The included npm scripts expect PHP at `C:\xampp\php\php.exe`. If PHP is installed somewhere else, update the `server` and `start` scripts in [`package.json`](package.json), or run PHP manually as shown below.
+
+## Installation and first-time setup
+
+### 1. Open the repository directory
+
+Run npm from the project root. Running it from `C:\Users\pranati` or another directory causes the `package.json` not found error.
+
+```powershell
+cd C:\Users\pranati\Downloads\corkboard
+```
+
+### 2. Install frontend dependencies
 
 ```powershell
 npm install
 ```
 
-Start MySQL in XAMPP. Create a database named `pinboard` in phpMyAdmin and import [`server/schema.sql`](server/schema.sql).
+### 3. Start MySQL in XAMPP
 
-Default database settings:
+Open the XAMPP Control Panel and start **MySQL**. Apache is not required for the provided development commands because PHP's built-in server is used.
+
+### 4. Create and initialise the database
+
+The complete table definition is in [`server/schema.sql`](server/schema.sql). Create a database named `pinboard`, then import the schema using the [SQL scripts](#sql-scripts) below or phpMyAdmin.
+
+Using the MySQL client:
+
+```powershell
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS pinboard CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p pinboard < server/schema.sql
+```
+
+Using phpMyAdmin:
+
+1. Open `http://localhost/phpmyadmin`.
+2. Create a database named `pinboard` using `utf8mb4`.
+3. Select `pinboard`.
+4. Open **Import**.
+5. Choose `server/schema.sql` and execute the import.
+
+### 5. Configure the API if necessary
+
+The defaults suit a standard XAMPP installation:
 
 ```text
 Host:     127.0.0.1
@@ -55,114 +117,216 @@ User:     root
 Password: empty
 ```
 
-Override these values with `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` and `APP_ORIGINS`. Defaults are defined in [`server/config.php`](server/config.php).
-
-For a disposable development database, import the schema into a new database. Back up an existing database before changing its schema.
-
-## Development
-
-Use two PowerShell terminals from `C:\Users\pranati\Downloads\corkboard`.
-
-Terminal 1:
+Defaults are defined in [`server/config.php`](server/config.php). Override them with environment variables when required:
 
 ```powershell
+$env:DB_HOST = '127.0.0.1'
+$env:DB_PORT = '3306'
+$env:DB_NAME = 'pinboard'
+$env:DB_USER = 'root'
+$env:DB_PASS = ''
+$env:APP_ORIGINS = 'http://localhost:5173,http://127.0.0.1:5173'
+```
+
+The application stores uploaded files under `server/uploads/<user-id>/`. Make sure PHP can write to `server/uploads`.
+
+## Execution instructions
+
+### Development mode
+
+Use two PowerShell terminals and keep both processes running.
+
+**Terminal 1: start the PHP API**
+
+```powershell
+cd C:\Users\pranati\Downloads\corkboard
 npm run server
 ```
 
-This starts the PHP API at `http://127.0.0.1:5174`.
+The API starts at `http://127.0.0.1:5174`.
 
-Terminal 2:
+**Terminal 2: start the Vite frontend**
 
 ```powershell
+cd C:\Users\pranati\Downloads\corkboard
 npm run dev
 ```
 
 Open `http://localhost:5173`.
 
-Vite proxies `/api` requests to PHP on port `5174`. Keep MySQL running while using authentication, boards, saving and uploads.
+Vite proxies `/api` requests to PHP on port `5174`. MySQL must remain running while using registration, login, boards, saving, sharing or uploads.
 
-## Production-style local run
+### Production-style local mode
+
+Build the frontend and serve the built application and API through the PHP router:
 
 ```powershell
+cd C:\Users\pranati\Downloads\corkboard
 npm run build
 npm start
 ```
 
-Open `http://127.0.0.1:5174`. The PHP router serves the built frontend, API requests, uploaded files and the SPA fallback needed for refreshing client-side routes.
+Open `http://127.0.0.1:5174`. The PHP router serves API requests, uploaded files, static build files and the SPA fallback needed when refreshing a client-side route.
+
+### Available npm commands
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the Vite development frontend |
+| `npm run server` | Start the PHP API on port 5174 |
+| `npm run build` | Create the production frontend in `dist/` |
+| `npm start` | Build the frontend and serve it through PHP |
+| `npm test` | Run unit tests |
+| `npm run test:e2e` | Build and run Playwright end-to-end tests |
+| `npm run preview` | Preview the Vite production build |
 
 ## Application routes
 
 ```text
-/                  Landing page
-/login             Login page
-/register          Registration page
-/dashboard         Board dashboard
-/profile           User profile
-/boards/<board-id> Individual board workspace
+/                    landing page
+/login               login page
+/register            registration page
+/dashboard           board dashboard
+/profile             user profile
+/boards/<board-id>   individual board workspace
 ```
 
-The client-side router uses the History API and flushes pending board saves before navigation.
+The client-side router uses the History API. It also flushes pending board saves before navigation where required.
 
-## API overview
+## PHP API overview
 
 The main controller is [`server/index.php`](server/index.php):
 
 ```text
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/logout
-GET    /api/me
-PATCH  /api/me
-GET    /api/boards
-POST   /api/boards
-GET    /api/boards/<id>
-PATCH  /api/boards/<id>
-DELETE /api/boards/<id>
-PUT    /api/boards/<id>/state
-GET/POST/DELETE /api/boards/<id>/shares
-POST   /api/uploads
+POST              /api/auth/register
+POST              /api/auth/login
+POST              /api/auth/logout
+GET               /api/me
+PATCH             /api/me
+GET               /api/boards
+POST              /api/boards
+GET               /api/boards/<id>
+PATCH             /api/boards/<id>
+DELETE            /api/boards/<id>
+PUT               /api/boards/<id>/state
+GET/POST/DELETE   /api/boards/<id>/shares
+POST              /api/uploads
 ```
 
-JSON requests use the Fetch API. Uploads use `multipart/form-data`, are checked by MIME type and size, and are stored under `server/uploads/<user-id>/` with generated filenames.
+Normal requests use JSON. File uploads use `multipart/form-data`, are checked by MIME type and size, stored with generated filenames and served through the PHP router.
 
-## Architecture and persistence
-
-The board is the main React surface. Landing, authentication, dashboard and profile views use lightweight JavaScript views. The board is mounted by [`src/board.jsx`](src/board.jsx) and rendered through [`src/components/BoardView.jsx`](src/components/BoardView.jsx).
-
-The board flow is:
+The board save flow is:
 
 ```text
-Open board -> GET board document -> edit local state -> debounced autosave
-           -> PUT board state -> PHP validation/authorization -> MySQL transaction
+Open board -> load board document -> edit local state -> debounce autosave
+           -> validate and authorise request -> MySQL transaction
+           -> update confirmed version
 ```
 
-The saved document contains `nodes`, `connections`, `groups`, `comments` and `version`. [`src/store/boardSaver.js`](src/store/boardSaver.js) serializes saves, keeps failed changes dirty and supports retrying. The backend rejects stale versions instead of silently overwriting newer edits.
+If the submitted version is older than the database version, the API rejects the write as stale. The frontend retains the unsaved state so the user does not lose work silently.
 
-## Database
+## Database design
 
-The schema is defined in [`server/schema.sql`](server/schema.sql). Relations are:
+The relational schema is defined in [`server/schema.sql`](server/schema.sql). The main relations are:
 
 ```text
-users, sessions, boards, nodes,
-connections, board_groups, comments, shares
+users          account identity and ownership
+sessions       authenticated session tokens
+boards         board metadata, visibility and version
+nodes          text/media content and geometry
+board_groups   spatial grouping information
+connections    labelled relationships between nodes
+comments       board or node discussion
+shares         board-level access roles
 ```
 
-Database access is implemented in [`server/db.php`](server/db.php) using PDO prepared statements. Validation is centralised in [`server/validation.php`](server/validation.php). Foreign keys and cascading deletes preserve board relationships and remove child records when a board is deleted.
+The schema keeps parent facts in `boards` and stores repeating child facts in separate relations. Foreign keys maintain board ownership and connection endpoints. Composite keys keep node, group, connection and comment records scoped to their board. [`server/db.php`](server/db.php) uses PDO prepared statements for database access.
 
-## Tests
+## SQL scripts
 
-Run unit tests:
+The following scripts assume MySQL or MariaDB and the default database name `pinboard`.
+
+### 1. Database creation
+
+Run this once as a MySQL administrator:
+
+```sql
+CREATE DATABASE IF NOT EXISTS pinboard
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE pinboard;
+```
+
+### 2. Table creation
+
+The authoritative table-creation script is [`server/schema.sql`](server/schema.sql). After creating the database, import it with:
+
+```powershell
+mysql -u root -p pinboard < server/schema.sql
+```
+
+It creates `users`, `sessions`, `boards`, `nodes`, `connections`, `board_groups`, `comments` and `shares`, including their primary keys, indexes, foreign keys and cascading delete rules. Use `server/schema.sql` as the source of truth rather than copying an abbreviated definition into another file.
+
+### 3. Sample data insertion
+
+After importing the schema, run this optional seed data. It creates one demo account, one board, two nodes, one group, one connection, one comment and one share.
+
+Demo login:
+
+```text
+Email:    demo@example.com
+Password: DemoPass123!
+```
+
+```sql
+USE pinboard;
+
+INSERT IGNORE INTO users (id, name, email, pass_hash, created_at)
+VALUES ('user-demo-001', 'Demo User', 'demo@example.com',
+        '$2y$10$Ea/V/Wp8R1gCl/nPA8j0sOs5G4oFisJOemhgKetLQce2THxkDW2Wq',
+        1710000000000);
+
+INSERT IGNORE INTO boards
+  (id, user_id, kind, title, description, is_public, background, updated_at, version)
+VALUES ('board-demo-001', 'user-demo-001', 'pinboard', 'Demo Research Board',
+        'Seed board for local development and demonstrations.', 0, 'cork',
+        1710000000000, 1);
+
+INSERT IGNORE INTO nodes
+  (id, board_id, type, title, content, x, y, w, h, tags, color)
+VALUES
+  ('node-demo-001', 'board-demo-001', 'text', 'Project question',
+   'How can spatial organisation preserve relationships between project references?',
+   120, 120, 280, 160, '["research","question"]', 'cream'),
+  ('node-demo-002', 'board-demo-001', 'link', 'Reference source',
+   'https://example.com/reference', 520, 180, 300, 150,
+   '["source"]', 'blue');
+
+INSERT IGNORE INTO board_groups (id, board_id, name, x, y, w, h)
+VALUES ('group-demo-001', 'board-demo-001', 'Initial research', 80, 80, 820, 360);
+
+INSERT IGNORE INTO connections (id, board_id, from_id, to_id, label)
+VALUES ('connection-demo-001', 'board-demo-001', 'node-demo-001',
+        'node-demo-002', 'supported by');
+
+INSERT IGNORE INTO comments (id, board_id, node_id, author, content, created_at)
+VALUES ('comment-demo-001', 'board-demo-001', 'node-demo-001', 'Demo User',
+        'This question defines the scope for the first research pass.',
+        1710000000000);
+
+INSERT IGNORE INTO shares (board_id, email, role)
+VALUES ('board-demo-001', 'reviewer@example.com', 'viewer');
+```
+
+`INSERT IGNORE` makes the seed script safe to run again with the same identifiers. It is intended for local demonstrations, not production data loading.
+
+## Testing
+
+Run the unit tests:
 
 ```powershell
 npm test
-```
-
-These cover autosave, failed saves, retry handling, serialized writes and route parsing.
-
-Run the production build:
-
-```powershell
-npm run build
 ```
 
 Run the browser/API integration test:
@@ -171,40 +335,11 @@ Run the browser/API integration test:
 npm run test:e2e
 ```
 
-The end-to-end test requires MySQL and uses a separate `pinboard_test` database. It verifies registration, login, board creation, persistence, permissions, profile updates, save failures and deletion.
-
-## Project structure
-
-```text
-src/
-  api.js                Fetch API and uploads
-  main.js               Application entry point
-  router.js             Client-side routes
-  board.jsx             React board mounting
-  components/           Board, nodes, groups, connections and editors
-  data/                 Board types and seed configuration
-  store/                Global state and autosave
-  styles/               Feature-specific CSS
-  views/                Landing, auth, dashboard and modal views
-
-server/
-  config.php            Database and CORS configuration
-  db.php                PDO access and persistence
-  http.php               JSON, CORS and session helpers
-  index.php              PHP JSON API
-  router.php             API, upload and SPA front controller
-  schema.sql             MySQL schema
-  validation.php         Board document validation
-  uploads/               Runtime uploads, ignored by Git
-
-tests/unit/              Fast Node unit tests
-tests/e2e/               Playwright browser/API test
-dist/                    Generated production output
-```
+The end-to-end test builds the frontend and requires a working MySQL instance. It uses the configured test database, normally `pinboard_test`, and exercises registration, authentication, board creation, persistence, permissions, profile updates, save failures and deletion.
 
 ## Troubleshooting
 
-### `Could not read package.json`
+### `npm error ENOENT: package.json`
 
 Run npm from the repository root:
 
@@ -213,17 +348,13 @@ cd C:\Users\pranati\Downloads\corkboard
 npm run dev
 ```
 
-### Vite reports `spawn EPERM`
+### The frontend loads but API requests fail
 
-Close duplicate Vite processes and retry from a normal PowerShell window. This means Windows prevented Vite's esbuild process from starting.
+Check that MySQL is running, the PHP API terminal is running, `pinboard` exists, `server/schema.sql` was imported and the credentials in `server/config.php` are correct.
 
-### Database errors
+### Uploads fail or return an HTML error
 
-Confirm that MySQL is running, `pinboard` exists, `server/schema.sql` was imported and the credentials in `server/config.php` are correct.
-
-### Upload errors
-
-Confirm that PHP's `fileinfo` extension is enabled and PHP can create `server/uploads/`. The maximum upload size is 25 MB.
+Confirm that PHP's `fileinfo` extension is enabled and that PHP can write to `server/uploads`. An HTML response beginning with `<br />` usually indicates a PHP warning or fatal error. Check the PHP terminal and error log for the underlying message.
 
 ### A board route fails after refresh
 
@@ -234,12 +365,16 @@ npm run build
 npm start
 ```
 
+### Vite reports `spawn EPERM`
+
+Close duplicate Vite processes and retry from a normal PowerShell window. This is a Windows process-permission issue rather than an application route or database error.
+
 ## Future improvements
 
-- Cloud object storage instead of local uploads
-- Signed download URLs, file deletion and virus scanning
-- Incremental node saves for very large boards
-- Real-time collaboration with WebSockets
-- Board history and restore points
-- Formal database migration scripts
-- Improved keyboard accessibility and mobile editing
+- Move uploaded files to object storage with signed URLs.
+- Add file deletion, metadata management and virus scanning.
+- Replace whole-board writes with incremental updates for very large boards.
+- Add board history, restore points and conflict-resolution UI.
+- Introduce formal database migrations for schema changes.
+- Add real-time collaboration and presence indicators.
+- Improve keyboard accessibility and mobile editing.
